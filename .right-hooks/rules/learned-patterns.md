@@ -13,3 +13,6 @@
 - Use charmbracelet/gum for terminal UI instead of hand-drawing ASCII boxes — cleaner code, better output
 - Always use heredoc redirect (`<<< "$(printf ...)"`) not pipe (`printf ... | while`) when the loop body modifies parent shell state
 - Optional CLI tools should be detected once in preamble and cached in a variable, not checked per-call
+- Always use heredoc redirect (`<<< "$(printf ...)"`) not pipe (`printf ... | while`) when the loop body modifies parent shell state
+- Optional CLI tools should be detected once in preamble and cached in a variable, not checked per-call
+- Use charmbracelet/gum for terminal UI instead of hand-drawing ASCII boxes — cleaner code, better output
