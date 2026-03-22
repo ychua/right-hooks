@@ -5,8 +5,8 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "$SCRIPT_DIR/../helpers.sh"
 setup_test_env
 
-HOOK="$(cd "$SCRIPT_DIR/../../" && pwd)/hooks/subagent-stop-check.sh"
-PREAMBLE="$(cd "$SCRIPT_DIR/../../" && pwd)/hooks/_preamble.sh"
+HOOK="$(cd "$SCRIPT_DIR/../../../" && pwd)/hooks/subagent-stop-check.sh"
+PREAMBLE="$(cd "$SCRIPT_DIR/../../../" && pwd)/hooks/_preamble.sh"
 
 # Setup
 cd "$TEST_TMPDIR"

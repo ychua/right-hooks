@@ -3,7 +3,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "$SCRIPT_DIR/../helpers.sh"
 setup_test_env
 
-HOOK="$SCRIPT_DIR/../../hooks/block-agent-override.sh"
+HOOK="$SCRIPT_DIR/../../../hooks/block-agent-override.sh"
 
 echo "block-agent-override"
 

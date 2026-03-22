@@ -3,7 +3,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+PROJECT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
 export RH_TEST=1
 
@@ -18,7 +18,7 @@ echo "════════════════════════�
 echo ""
 
 # Find and run all test scripts
-for test_file in "$SCRIPT_DIR"/hooks/test-*.sh "$SCRIPT_DIR"/cli/test-*.sh "$SCRIPT_DIR"/integration/test-*.sh; do
+for test_file in "$SCRIPT_DIR"/hooks/test-*.sh "$SCRIPT_DIR"/cli/test-*.sh; do
   [ -f "$test_file" ] || continue
   
   suite_name=$(basename "$test_file" .sh | sed 's/^test-//')

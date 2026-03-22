@@ -4,7 +4,7 @@ source "$SCRIPT_DIR/../helpers.sh"
 setup_test_env
 
 # We'll test detect by running init --yes and checking the active preset
-CLI="$SCRIPT_DIR/../../bin/right-hooks.js"
+CLI="$SCRIPT_DIR/../../../bin/right-hooks.js"
 
 echo "cli/detect"
 

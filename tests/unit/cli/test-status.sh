@@ -5,7 +5,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "$SCRIPT_DIR/../helpers.sh"
 setup_test_env
 
-BIN="$(cd "$SCRIPT_DIR/../../" && pwd)/bin/right-hooks.js"
+BIN="$(cd "$SCRIPT_DIR/../../../" && pwd)/bin/right-hooks.js"
 
 # Setup: init a project in temp dir
 cd "$TEST_TMPDIR"

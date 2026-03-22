@@ -3,7 +3,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "$SCRIPT_DIR/../helpers.sh"
 setup_test_env
 
-HOOK="$SCRIPT_DIR/../../hooks/post-edit-check.sh"
+HOOK="$SCRIPT_DIR/../../../hooks/post-edit-check.sh"
 
 echo "post-edit-check"
 
