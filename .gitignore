@@ -11,3 +11,6 @@ lib/
 .right-hooks/.review-comment-id
 .right-hooks/.qa-comment-id
 .right-hooks/.last-review-comment-id
+
+# Skill provenance files (transient state from skill invocation)
+.right-hooks/.skill-proof-*

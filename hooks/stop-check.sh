@@ -45,20 +45,32 @@ REVIEW_SENTINEL=".right-hooks/.review-comment-id"
 REVIEW_VERIFIED=false
 if [ -f "$REVIEW_SENTINEL" ] && [ -n "$OWNER_REPO" ]; then
   REVIEW_CID=$(cat "$REVIEW_SENTINEL")
-  REVIEW_EXISTS=$(gh api "repos/${OWNER_REPO}/issues/comments/${REVIEW_CID}" --jq '.id' 2>/dev/null || echo "")
-  [ -n "$REVIEW_EXISTS" ] && REVIEW_VERIFIED=true
+  REVIEW_BODY=$(gh api "repos/${OWNER_REPO}/issues/comments/${REVIEW_CID}" --jq '.body' 2>/dev/null || echo "")
+  [ -n "$REVIEW_BODY" ] && REVIEW_VERIFIED=true
 fi
+REVIEW_HINT=$(rh_skill_command "codeReview" "$PR_NUM")
 if [ "$REVIEW_VERIFIED" != "true" ]; then
   # Fallback: check comment pattern (weaker, can be faked by orchestrator)
   REVIEW_PAT=$(rh_review_pattern)
   REVIEW=$(echo "$RH_ALL_COMMENTS" | jq --arg pat "$REVIEW_PAT" '[.[] | select(.body | test($pat; "i"))] | length' 2>/dev/null || echo "0")
-  REVIEW_HINT=$(rh_skill_command "codeReview" "$PR_NUM")
   if [ "$REVIEW" -eq 0 ]; then
     BLOCKERS="${BLOCKERS}• No review comment found. ${REVIEW_HINT}\n"
-    BLOCKERS="${BLOCKERS}  → Sentinel: write comment ID to .right-hooks/.review-comment-id\n\n"
+    BLOCKERS="${BLOCKERS}  → Sentinel: write comment ID to .right-hooks/.review-comment-id\n"
+    BLOCKERS="${BLOCKERS}  → Provenance: write skill name to .right-hooks/.skill-proof-codeReview\n\n"
   else
     BLOCKERS="${BLOCKERS}• Review comment exists but no sentinel file (.right-hooks/.review-comment-id)\n"
     BLOCKERS="${BLOCKERS}  → Dispatch a real reviewer: subagents must write comment ID to the sentinel file\n\n"
+  fi
+else
+  # Sentinel verified — now check skill signature (Level 2)
+  if ! rh_skill_signature_match "codeReview" "$REVIEW_BODY"; then
+    BLOCKERS="${BLOCKERS}• Review comment doesn't match configured skill signature. ${REVIEW_HINT}\n"
+    BLOCKERS="${BLOCKERS}  → The comment was not produced by the configured review skill\n\n"
+  fi
+  # Check provenance (Level 3)
+  if ! rh_skill_provenance_check "codeReview"; then
+    BLOCKERS="${BLOCKERS}• No skill provenance for codeReview. ${REVIEW_HINT}\n"
+    BLOCKERS="${BLOCKERS}  → After invoking the skill, write: echo \"/review\" > .right-hooks/.skill-proof-codeReview\n\n"
   fi
 fi
 
@@ -67,19 +79,31 @@ QA_SENTINEL=".right-hooks/.qa-comment-id"
 QA_VERIFIED=false
 if [ -f "$QA_SENTINEL" ] && [ -n "$OWNER_REPO" ]; then
   QA_CID=$(cat "$QA_SENTINEL")
-  QA_EXISTS=$(gh api "repos/${OWNER_REPO}/issues/comments/${QA_CID}" --jq '.id' 2>/dev/null || echo "")
-  [ -n "$QA_EXISTS" ] && QA_VERIFIED=true
+  QA_BODY=$(gh api "repos/${OWNER_REPO}/issues/comments/${QA_CID}" --jq '.body' 2>/dev/null || echo "")
+  [ -n "$QA_BODY" ] && QA_VERIFIED=true
 fi
+QA_HINT=$(rh_skill_command "qa" "$PR_NUM")
 if [ "$QA_VERIFIED" != "true" ]; then
   QA_PAT=$(rh_qa_pattern)
   QA=$(echo "$RH_ALL_COMMENTS" | jq --arg pat "$QA_PAT" '[.[] | select(.body | test($pat; "i"))] | length' 2>/dev/null || echo "0")
-  QA_HINT=$(rh_skill_command "qa" "$PR_NUM")
   if [ "$QA" -eq 0 ]; then
     BLOCKERS="${BLOCKERS}• No QA comment found. ${QA_HINT}\n"
-    BLOCKERS="${BLOCKERS}  → Sentinel: write comment ID to .right-hooks/.qa-comment-id\n\n"
+    BLOCKERS="${BLOCKERS}  → Sentinel: write comment ID to .right-hooks/.qa-comment-id\n"
+    BLOCKERS="${BLOCKERS}  → Provenance: write skill name to .right-hooks/.skill-proof-qa\n\n"
   else
     BLOCKERS="${BLOCKERS}• QA comment exists but no sentinel file (.right-hooks/.qa-comment-id)\n"
     BLOCKERS="${BLOCKERS}  → Dispatch a real QA agent: subagents must write comment ID to the sentinel file\n\n"
+  fi
+else
+  # Sentinel verified — check skill signature (Level 2)
+  if ! rh_skill_signature_match "qa" "$QA_BODY"; then
+    BLOCKERS="${BLOCKERS}• QA comment doesn't match configured skill signature. ${QA_HINT}\n"
+    BLOCKERS="${BLOCKERS}  → The comment was not produced by the configured QA skill\n\n"
+  fi
+  # Check provenance (Level 3)
+  if ! rh_skill_provenance_check "qa"; then
+    BLOCKERS="${BLOCKERS}• No skill provenance for qa. ${QA_HINT}\n"
+    BLOCKERS="${BLOCKERS}  → After invoking the skill, write: echo \"/qa\" > .right-hooks/.skill-proof-qa\n\n"
   fi
 fi
 

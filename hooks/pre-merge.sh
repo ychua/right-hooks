@@ -69,10 +69,19 @@ fi
 
 # ── Check 3: Doc consistency (HARD ENFORCEMENT — always runs, no override) ──
 DOC_PAT=$(rh_doc_pattern)
-DOC_CHECK=$(echo "$RH_ALL_COMMENTS" | jq --arg pat "$DOC_PAT" '[.[] | select(.body | test($pat; "i"))] | length' 2>/dev/null || echo "0")
-if [ "$DOC_CHECK" -eq 0 ]; then
-  DOC_HINT=$(rh_skill_command "docConsistency" "$PR_NUM")
+DOC_COMMENT=$(echo "$RH_ALL_COMMENTS" | jq -r --arg pat "$DOC_PAT" '[.[] | select(.body | test($pat; "i"))] | last | .body // ""' 2>/dev/null || echo "")
+DOC_HINT=$(rh_skill_command "docConsistency" "$PR_NUM")
+if [ -z "$DOC_COMMENT" ]; then
   ERRORS="${ERRORS}Doc consistency: No documentation review comment found. ${DOC_HINT}\n"
+else
+  # Verify skill signature (Level 2)
+  if ! rh_skill_signature_match "docConsistency" "$DOC_COMMENT"; then
+    ERRORS="${ERRORS}Doc consistency: Comment doesn't match configured skill signature. ${DOC_HINT}\n"
+  fi
+  # Verify provenance (Level 3)
+  if ! rh_skill_provenance_check "docConsistency"; then
+    ERRORS="${ERRORS}Doc consistency: No skill provenance. After running ${DOC_HINT}, write: echo \"$(echo "$_RH_SKILLS_JSON" | jq -r '.docConsistency.skill // empty')\" > .right-hooks/.skill-proof-docConsistency\n"
+  fi
 fi
 
 # ── Check 4: Planning artifacts (feat/ only) ──
@@ -91,10 +100,19 @@ if [ "$REQUIRE_CODE_REVIEW" = "true" ]; then
   if ! rh_has_override "codeReview" "$PR_NUM"; then
     REVIEW_PAT=$(rh_review_pattern)
     SEVERITY_PAT=$(rh_review_severity_pattern)
-    REVIEW=$(echo "$RH_ALL_COMMENTS" | jq --arg pat "$REVIEW_PAT" --arg sev "$SEVERITY_PAT" '[.[] | select(.body | test($pat; "i")) | select(.body | test($sev; "i"))] | length' 2>/dev/null || echo "0")
-    if [ "$REVIEW" -eq 0 ]; then
-      REVIEW_HINT=$(rh_skill_command "codeReview" "$PR_NUM")
+    REVIEW_BODY=$(echo "$RH_ALL_COMMENTS" | jq -r --arg pat "$REVIEW_PAT" --arg sev "$SEVERITY_PAT" '[.[] | select(.body | test($pat; "i")) | select(.body | test($sev; "i"))] | last | .body // ""' 2>/dev/null || echo "")
+    REVIEW_HINT=$(rh_skill_command "codeReview" "$PR_NUM")
+    if [ -z "$REVIEW_BODY" ]; then
       ERRORS="${ERRORS}Code Review: No review comment with severity markers found. ${REVIEW_HINT}\n"
+    else
+      # Verify skill signature (Level 2)
+      if ! rh_skill_signature_match "codeReview" "$REVIEW_BODY"; then
+        ERRORS="${ERRORS}Code Review: Comment doesn't match configured skill signature. ${REVIEW_HINT}\n"
+      fi
+      # Verify provenance (Level 3)
+      if ! rh_skill_provenance_check "codeReview"; then
+        ERRORS="${ERRORS}Code Review: No skill provenance for codeReview. After running the skill, write provenance file.\n"
+      fi
     fi
 
     # Check staleness — are there commits after last review?
@@ -141,10 +159,17 @@ if [ "$REQUIRE_QA" = "true" ]; then
   if ! rh_has_override "qa" "$PR_NUM"; then
     QA_PAT=$(rh_qa_pattern)
     QA_RESULT_PAT=$(rh_qa_result_pattern)
-    QA=$(echo "$RH_ALL_COMMENTS" | jq --arg pat "$QA_PAT" --arg res "$QA_RESULT_PAT" '[.[] | select(.body | test($pat; "i")) | select(.body | test($res; "i"))] | length' 2>/dev/null || echo "0")
-    if [ "$QA" -eq 0 ]; then
-      QA_HINT=$(rh_skill_command "qa" "$PR_NUM")
+    QA_BODY=$(echo "$RH_ALL_COMMENTS" | jq -r --arg pat "$QA_PAT" --arg res "$QA_RESULT_PAT" '[.[] | select(.body | test($pat; "i")) | select(.body | test($res; "i"))] | last | .body // ""' 2>/dev/null || echo "")
+    QA_HINT=$(rh_skill_command "qa" "$PR_NUM")
+    if [ -z "$QA_BODY" ]; then
       ERRORS="${ERRORS}QA: No QA comment with test result markers found. ${QA_HINT}\n"
+    else
+      if ! rh_skill_signature_match "qa" "$QA_BODY"; then
+        ERRORS="${ERRORS}QA: Comment doesn't match configured skill signature. ${QA_HINT}\n"
+      fi
+      if ! rh_skill_provenance_check "qa"; then
+        ERRORS="${ERRORS}QA: No skill provenance for qa. After running the skill, write provenance file.\n"
+      fi
     fi
   fi
 fi

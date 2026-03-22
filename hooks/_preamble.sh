@@ -262,6 +262,77 @@ rh_skill_command() {
   echo "Post a comment on the PR"
 }
 
+# Skill signature checker — verifies a PR comment matches the configured skill's signature
+# Returns 0 if comment matches the skill-specific signature, 1 otherwise
+# Usage: rh_skill_signature_match "codeReview" "$COMMENT_BODY"
+rh_skill_signature_match() {
+  local gate="$1"
+  local body="$2"
+
+  # Load skills.json (uses cached value from rh_skill_command if already called)
+  if [ -z "$_RH_SKILLS_LOADED" ]; then
+    _RH_SKILLS_JSON=$(cat .right-hooks/skills.json 2>/dev/null || echo "{}")
+    _RH_SKILLS_LOADED=1
+  fi
+
+  local sig
+  sig=$(echo "$_RH_SKILLS_JSON" | jq -r --arg g "$gate" '.[$g].skillSignature // empty' 2>/dev/null)
+
+  if [ -z "$sig" ]; then
+    # No skill signature configured — pass (generic/prompt-based mode)
+    rh_debug "skill-sig" "gate=$gate — no signature configured, passing"
+    return 0
+  fi
+
+  if echo "$body" | grep -qiE "$sig"; then
+    rh_debug "skill-sig" "gate=$gate — signature matched"
+    return 0
+  else
+    rh_debug "skill-sig" "gate=$gate — signature NOT matched (expected: $sig)"
+    return 1
+  fi
+}
+
+# Skill provenance protocol — verifies the configured skill was actually invoked
+# Checks .right-hooks/.skill-proof-{gate} for the skill name
+# Returns 0 if provenance matches, 1 otherwise
+# Usage: rh_skill_provenance_check "codeReview"
+rh_skill_provenance_check() {
+  local gate="$1"
+  local proof_file=".right-hooks/.skill-proof-${gate}"
+
+  if [ ! -f "$proof_file" ]; then
+    rh_debug "skill-proof" "gate=$gate — no provenance file"
+    return 1
+  fi
+
+  # Load configured skill
+  if [ -z "$_RH_SKILLS_LOADED" ]; then
+    _RH_SKILLS_JSON=$(cat .right-hooks/skills.json 2>/dev/null || echo "{}")
+    _RH_SKILLS_LOADED=1
+  fi
+
+  local configured_skill
+  configured_skill=$(echo "$_RH_SKILLS_JSON" | jq -r --arg g "$gate" '.[$g].skill // empty' 2>/dev/null)
+
+  if [ -z "$configured_skill" ]; then
+    # No skill configured (prompt-based) — provenance not required
+    rh_debug "skill-proof" "gate=$gate — no skill configured, provenance not required"
+    return 0
+  fi
+
+  local recorded_skill
+  recorded_skill=$(cat "$proof_file" 2>/dev/null)
+
+  if [ "$recorded_skill" = "$configured_skill" ]; then
+    rh_debug "skill-proof" "gate=$gate — provenance verified: $recorded_skill"
+    return 0
+  else
+    rh_debug "skill-proof" "gate=$gate — provenance MISMATCH: recorded=$recorded_skill configured=$configured_skill"
+    return 1
+  fi
+}
+
 # Helper: get branch type prefix
 rh_branch_type() {
   local branch
