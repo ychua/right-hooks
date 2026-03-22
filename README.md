@@ -124,19 +124,14 @@ Why husky? Because Claude Code hooks only fire inside Claude Code sessions. If s
 
 ### 📋 Behavioral Enforcement (rules + conventions)
 
-Not everything can be mechanically enforced. These rules guide agent behavior through `.claude/rules/`:
+Not everything can be mechanically enforced. These rules guide agent behavior through `.claude/rules/`. All prefixed with `rh-` to separate from your own rules.
 
-| Rule | What it covers | Auto-loaded? |
-|------|---------------|-------------|
-| **development-lifecycle** | Full workflow: planning → build → review/QA → learnings → merge | ✅ Yes |
-| **git-workflow** | Branch naming (GH/CH/B enforcement matrix) | ✅ Yes |
-| **testing** | TDD discipline: stubs → red-green → refactor | Optional |
-| **design-docs** | Design doc requirements: alternatives, rationale, reversibility | Optional |
-
-Optional rules live in `.right-hooks/optional-rules/`. To enable, symlink into `.claude/rules/`:
-```bash
-ln -s ../../.right-hooks/optional-rules/testing.md .claude/rules/testing.md
-```
+| Rule | What it covers |
+|------|---------------|
+| **rh-development-lifecycle** | Full workflow: planning → build → review/QA → learnings → merge |
+| **rh-git-workflow** | Branch naming, enforcement matrix (GH/CH/B types) |
+| **rh-design-docs** | Design doc requirements: alternatives, rationale, reversibility |
+| **rh-testing** | TDD discipline: stubs → red-green → refactor |
 
 ---
 

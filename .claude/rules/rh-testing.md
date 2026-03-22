@@ -1,0 +1,1 @@
+../../.right-hooks/rules/rh-testing.md

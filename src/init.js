@@ -181,20 +181,6 @@ function install(projectDir, pkgRoot, preset, profileChoice) {
   }
   console.log(`✓ Rules symlinked to ${CLAUDE_DIR}/rules/ (${ruleFiles.length} rule files)`);
 
-  // Copy optional rules (not auto-symlinked — user opts in)
-  const optionalDir = path.join(pkgRoot, 'templates', 'optional-rules');
-  if (fs.existsSync(optionalDir)) {
-    const optDst = path.join(rhDir, 'optional-rules');
-    fs.mkdirSync(optDst, { recursive: true });
-    const optFiles = fs.readdirSync(optionalDir).filter(f => f.endsWith('.md'));
-    for (const file of optFiles) {
-      fs.copyFileSync(path.join(optionalDir, file), path.join(optDst, file));
-    }
-    if (optFiles.length > 0) {
-      console.log(`✓ Optional rules available in ${RH_DIR}/optional-rules/ (${optFiles.length} files — symlink to .claude/rules/ to enable)`);
-    }
-  }
-
   // Copy templates
   const templatesDir = path.join(pkgRoot, 'templates');
   const templateFiles = fs.readdirSync(templatesDir).filter(f => f.endsWith('.md'));

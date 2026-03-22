@@ -1,1 +1,0 @@
-../../.right-hooks/rules/development-lifecycle.md

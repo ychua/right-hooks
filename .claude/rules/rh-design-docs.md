@@ -1,0 +1,1 @@
+../../.right-hooks/rules/rh-design-docs.md
