@@ -38,7 +38,7 @@
     "signatures/"
   ],
   "scripts": {
-    "test": "bash test/run.sh",
+    "test": "bash tests/unit/run.sh",
     "prepare": "husky"
   },
   "engines": {
