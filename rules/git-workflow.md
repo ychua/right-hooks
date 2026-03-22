@@ -5,7 +5,7 @@
 
 ## Branch Naming Convention
 
-Branches must follow `{type}/{description}`. Enforced by husky pre-push hook.
+Branches must follow `{type}/{description}`. Enforced by husky pre-push hook (GH).
 
 | Type | When to use |
 |------|-------------|
@@ -23,31 +23,26 @@ Branches must follow `{type}/{description}`. Enforced by husky pre-push hook.
 Description: lowercase alphanumeric with dashes.
 Example: `feat/user-auth`, `fix/hook-false-positive`.
 
-## Parallel Work (recommended)
-
-For working on multiple features simultaneously, git worktrees provide isolation
-without switching branches:
-
-```bash
-git worktree add .worktrees/<name> -b <branch-name>
-```
-
-Add `.worktrees/` to `.gitignore`. This is optional — regular branches work fine
-for sequential work.
-
 ## Enforcement by Branch Type
 
-| Branch type | CI | DoD | Doc check | Planning | Review/QA | Learnings |
-|---|---|---|---|---|---|---|
-| `feat/` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `fix/` | ✓ | ✓ | ✓ | — | ✓ | ✓ |
-| `refactor/` | ✓ | ✓ | ✓ | — | ✓ | ✓ |
-| `docs/` | ✓ | ✓ | ✓ | — | — | — |
-| `chore/` | ✓ | ✓ | ✓ | — | — | — |
-| `hotfix/` | ✓ | ✓ | ✓ | — | — | — |
+**GH** = Git Hook (husky), **CH** = Claude Code Hook, **B** = Behavioral (rules only)
 
-## Secret Management
+| Branch type | Push protection | Branch naming | CI | DoD | Doc check | Planning | Review/QA | Learnings |
+|---|---|---|---|---|---|---|---|---|
+| `feat/` | GH + CH | GH | CH | CH | CH | CH | CH | CH |
+| `fix/` | GH + CH | GH | CH | CH | CH | — | CH | CH |
+| `refactor/` | GH + CH | GH | CH | CH | CH | — | CH | CH |
+| `docs/` | GH + CH | GH | CH | CH | CH | — | — | — |
+| `chore/` | GH + CH | GH | CH | CH | CH | — | — | — |
+| `hotfix/` | GH + CH | GH | CH | CH | CH | — | — | — |
 
-- **Never commit secrets** (database URLs, API keys, tokens) to the repository
-- Write code that reads secrets from environment variables or `.env` files (gitignored)
-- Use `.env.example` files to document required environment variables
+Additional enforcement (all branches):
+| What | Type | Hook |
+|------|------|------|
+| Post-edit validation (tsc/mypy/cargo) | CH | `post-edit-check` |
+| Stop prevention (no quitting before review) | CH | `stop-check` |
+| Subagent output verification | CH | `subagent-stop-check` |
+| Override protection (humans only) | CH | `block-agent-override` |
+| Config tamper protection | CH | `config-change` |
+| TDD discipline | B | `rules/testing.md` (opt-in) |
+| Design doc quality | B | `rules/design-docs.md` (opt-in) |
