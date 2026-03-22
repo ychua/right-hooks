@@ -79,10 +79,10 @@ if [ "$LEARNINGS" -eq 0 ]; then
 fi
 
 if [ -n "$BLOCKERS" ]; then
-  rh_block_start "stop-check" "BLOCKED"
-  printf "$BLOCKERS" | while IFS= read -r line; do
+  rh_block_start "stop-check"
+  while IFS= read -r line; do
     [ -n "$line" ] && rh_block_item "$line"
-  done
+  done <<< "$(printf "$BLOCKERS")"
   if [ "$HAS_SUPERPOWERS" = "true" ]; then
     rh_block_item "TIP: Use verification-before-completion"
   fi

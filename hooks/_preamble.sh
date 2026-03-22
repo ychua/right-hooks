@@ -40,64 +40,73 @@ else
 fi
 
 # Logging helpers — all output to stderr
-# Boxing ring UI: thin box for pass, heavy box for block
-# Box width = visible character columns (excluding border chars)
-_RH_W=38
-
-# Pad a string to fill the box width. Emojis count as 2 display cols
-# but ${#str} counts bytes/chars. We add 1 extra pad per emoji found.
-_rh_pad() {
-  local str="$1"
-  local emoji_count
-  emoji_count=$(printf '%s' "$str" | grep -oE '(\xE2[\x9C-\x9D][\x85-\xBD]|\xF0\x9F[\x8E-\x9A][\x80-\xBF])' 2>/dev/null | wc -l | tr -d ' ')
-  local pad=$(( _RH_W - ${#str} + emoji_count ))
-  [ "$pad" -lt 0 ] && pad=0
-  printf '%*s' "$pad" ""
-}
+# Uses gum (charmbracelet/gum) for styled boxes when available,
+# falls back to plain text when not installed.
+_RH_HAS_GUM=""
+if command -v gum >/dev/null 2>&1; then
+  _RH_HAS_GUM=1
+fi
 
 rh_pass() {
   [ "${RH_QUIET:-}" = "1" ] && return
   local hook="$1" msg="$2"
-  local line="  ✅ ${hook} — ${msg}"
-  printf '  ┌── 🥊 %s┐\n' "$(printf '─%.0s' $(seq 1 $((_RH_W - 4))))" >&2
-  printf '  │%s%s│\n' "$line" "$(_rh_pad "$line")" >&2
-  printf '  └%s┘\n' "$(printf '─%.0s' $(seq 1 $((_RH_W + 2))))" >&2
+  if [ -n "$_RH_HAS_GUM" ]; then
+    echo "✅ ${hook} — ${msg}" | gum style --border rounded --border-foreground 2 --padding "0 1" --margin "0 2" >&2
+  else
+    printf '✅ %s — %s\n' "$hook" "$msg" >&2
+  fi
 }
 
+# Incremental block API: rh_block_start → rh_block_item → rh_block_end
+# Collects items in _RH_BLOCK_LINES, renders on rh_block_end
+_RH_BLOCK_HOOK=""
+_RH_BLOCK_LINES=""
+
 rh_block_start() {
-  local hook="$1" msg="$2"
-  local header="  🚨 RIGHT HOOKS"
-  printf '  ╔%s╗\n' "$(printf '═%.0s' $(seq 1 $((_RH_W + 2))))" >&2
-  printf '  ║%s%s║\n' "$header" "$(_rh_pad "$header")" >&2
-  printf '  ╠%s╣\n' "$(printf '═%.0s' $(seq 1 $((_RH_W + 2))))" >&2
-  local line="  🚫 ${hook} — ${msg}"
-  printf '  ║%s%s║\n' "$line" "$(_rh_pad "$line")" >&2
-  printf '  ╠%s╣\n' "$(printf '═%.0s' $(seq 1 $((_RH_W + 2))))" >&2
+  _RH_BLOCK_HOOK="$1"
+  _RH_BLOCK_LINES=""
 }
 
 rh_block_item() {
-  local line="  $1"
-  printf '  ║%s%s║\n' "$line" "$(_rh_pad "$line")" >&2
+  _RH_BLOCK_LINES="${_RH_BLOCK_LINES}${1}\n"
 }
 
 rh_block_end() {
   local hint="${1:-}"
-  if [ -n "$hint" ]; then
-    printf '  ╠%s╣\n' "$(printf '═%.0s' $(seq 1 $((_RH_W + 2))))" >&2
-    local line="  $hint"
-    printf '  ║%s%s║\n' "$line" "$(_rh_pad "$line")" >&2
+  local body
+  body=$(printf "🚨 RIGHT HOOKS\n\n🚫 %s — BLOCKED\n\n%b" "$_RH_BLOCK_HOOK" "$_RH_BLOCK_LINES")
+  if [ -n "$_RH_HAS_GUM" ]; then
+    printf '%s' "$body" | gum style --border double --border-foreground 1 --padding "0 1" --margin "0 2" >&2
+    if [ -n "$hint" ]; then
+      printf '%s' "  $hint" | gum style --foreground 8 --margin "0 2" --italic >&2
+    fi
+  else
+    printf '🚨 RIGHT HOOKS — %s BLOCKED\n' "$_RH_BLOCK_HOOK" >&2
+    printf '%b' "$_RH_BLOCK_LINES" | while IFS= read -r line; do
+      [ -n "$line" ] && printf '  %s\n' "$line" >&2
+    done
+    [ -n "$hint" ] && printf '  %s\n' "$hint" >&2
   fi
-  printf '  ╚%s╝\n' "$(printf '═%.0s' $(seq 1 $((_RH_W + 2))))" >&2
+  _RH_BLOCK_HOOK=""
+  _RH_BLOCK_LINES=""
 }
 
-# Legacy rh_block — simple one-liner for hooks that don't use the incremental API
+# Legacy rh_block — one-liner for simple blocks
 rh_block() {
-  printf '🚨🥊 %-16s → 🚫 %s\n' "$1" "$2" >&2
+  if [ -n "$_RH_HAS_GUM" ]; then
+    echo "🚫 $1 — $2" | gum style --border double --border-foreground 1 --padding "0 1" --margin "0 2" >&2
+  else
+    printf '🚨 %s — %s\n' "$1" "$2" >&2
+  fi
 }
 
 rh_info() {
   [ "${RH_QUIET:-}" = "1" ] && return
-  printf '🥊 %-18s → %s\n' "$1" "$2" >&2
+  if [ -n "$_RH_HAS_GUM" ]; then
+    echo "🥊 ${1} — ${2}" | gum style --border rounded --border-foreground 3 --padding "0 1" --margin "0 2" >&2
+  else
+    printf '🥊 %s — %s\n' "$1" "$2" >&2
+  fi
 }
 
 # Debug helper — only outputs when RH_DEBUG=1

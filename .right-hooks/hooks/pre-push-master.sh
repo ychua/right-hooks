@@ -16,7 +16,7 @@ fi
 BRANCH=$(rh_branch)
 
 if [ "$BRANCH" = "master" ] || [ "$BRANCH" = "main" ]; then
-  rh_block_start "pre-push" "BLOCKED"
+  rh_block_start "pre-push"
   rh_block_item "Direct push to ${BRANCH} is not allowed"
   rh_block_item "Create a branch first:"
   rh_block_item "  git checkout -b feat/your-feature"

@@ -10,7 +10,7 @@ INPUT=$(cat)
 CMD=$(echo "$INPUT" | jq -r '.tool_input.command // ""' 2>/dev/null)
 
 if echo "$CMD" | grep -qE 'right-hooks\s+override'; then
-  rh_block_start "block-override" "BLOCKED"
+  rh_block_start "block-override"
   rh_block_item "Only humans can bypass gates"
   rh_block_end "Ask user: npx right-hooks override"
   exit 2
