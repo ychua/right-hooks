@@ -29,6 +29,18 @@ COMMENT_ID=$(echo "$COMMENT_URL" | grep -oE '[0-9]+$')
 echo "$COMMENT_ID" > .right-hooks/.review-comment-id  # or .qa-comment-id
 ```
 
+**ALWAYS use the configured skill** for review, QA, and doc consistency. Check
+`.right-hooks/skills.json` for the configured skill per gate. After invoking a
+skill, write provenance so the hooks can verify:
+```bash
+echo "/review" > .right-hooks/.skill-proof-codeReview
+echo "/qa" > .right-hooks/.skill-proof-qa
+echo "/document-release" > .right-hooks/.skill-proof-docConsistency
+```
+Hooks verify three things: (1) sentinel file proves real comment, (2) comment
+matches the skill's signature pattern, (3) provenance file proves the configured
+skill was invoked. All three must pass.
+
 ## Architecture
 
 Three-layer enforcement system for AI coding agents:

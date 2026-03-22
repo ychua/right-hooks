@@ -161,6 +161,11 @@ function test_pre_merge_passes_with_all_gates() {
   export MOCK_HAS_REVIEW=1 MOCK_HAS_QA=1 MOCK_HAS_LEARNINGS=1 MOCK_HAS_DOC=1
   export MOCK_HAS_DESIGN_DOC=1 MOCK_HAS_EXEC_PLAN=1
   export MOCK_CI_FAILING=0 MOCK_DOD_INCOMPLETE=0
+  # Create provenance files to prove skills were invoked
+  mkdir -p .right-hooks
+  echo "/review" > .right-hooks/.skill-proof-codeReview
+  echo "/qa" > .right-hooks/.skill-proof-qa
+  echo "/document-release" > .right-hooks/.skill-proof-docConsistency
   # Create learnings file matching mock's gh pr diff output filename
   # Headers must match signatures.json learningsHeader values
   mkdir -p docs/retros
@@ -190,6 +195,9 @@ function test_stop_check_allows_when_complete() {
   mkdir -p .right-hooks
   echo "12345" > .right-hooks/.review-comment-id
   echo "12346" > .right-hooks/.qa-comment-id
+  # Create provenance files to prove skills were invoked
+  echo "/review" > .right-hooks/.skill-proof-codeReview
+  echo "/qa" > .right-hooks/.skill-proof-qa
   run_hook "stop-check.sh" '{}'
   assert_equals "0" "$RH_LAST_EXIT"
   local stderr_out=$(cat /tmp/rh-test-stderr)
@@ -262,6 +270,9 @@ function test_light_profile_skips_review() {
   export MOCK_PR_EXISTS=1 MOCK_PR_NUMBER=45
   export MOCK_HAS_REVIEW=0 MOCK_HAS_QA=0 MOCK_HAS_LEARNINGS=0 MOCK_HAS_DOC=1
   export MOCK_CI_FAILING=0 MOCK_DOD_INCOMPLETE=0
+  # Doc consistency provenance (hard-enforced gate)
+  mkdir -p .right-hooks
+  echo "/document-release" > .right-hooks/.skill-proof-docConsistency
   run_hook "pre-merge.sh" '{"tool_input":{"command":"gh pr merge 45"}}'
   local exit_code=$?
   local stderr_out=$(cat /tmp/rh-test-stderr)
