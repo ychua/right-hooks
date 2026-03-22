@@ -80,7 +80,7 @@ Right Hooks is opinionated. These ship by default:
 
 📐 **Design Quality** — Design docs have alternatives considered, rationale, reversibility. Not just "we chose X."
 
-Disagree with any of these? Delete the symlink from `.claude/rules/` — the hooks still work, the opinions don't.
+Disagree with any of these? Remove the rule file from `.claude/rules/` — the hooks still work without them.
 
 ---
 
