@@ -51,7 +51,7 @@ fi
 # ── Check 1: CI green ──
 if [ "$REQUIRE_CI" = "true" ]; then
   if ! rh_has_override "ci" "$PR_NUM"; then
-    CI_FAILURES=$(gh pr checks "$PR_NUM" 2>/dev/null | grep -cE "fail|pending" || echo "0")
+    CI_FAILURES=$(gh pr checks "$PR_NUM" 2>/dev/null | { grep -cE "fail|pending" || true; })
     if [ "$CI_FAILURES" -gt 0 ]; then
       ERRORS="${ERRORS}CI: ${CI_FAILURES} check(s) failing or pending\n"
     fi
@@ -82,8 +82,8 @@ fi
 # ── Check 4: Planning artifacts (feat/ only) ──
 if [ "$REQUIRE_PLANNING" = "true" ]; then
   if ! rh_has_override "planningArtifacts" "$PR_NUM"; then
-    DESIGN_DOC=$(gh pr diff "$PR_NUM" --name-only 2>/dev/null | sort -u | grep -cE 'docs/designs/.*\.md$' || echo "0")
-    EXEC_PLAN=$(gh pr diff "$PR_NUM" --name-only 2>/dev/null | sort -u | grep -cE 'docs/exec-plans/.*\.md$' || echo "0")
+    DESIGN_DOC=$(gh pr diff "$PR_NUM" --name-only 2>/dev/null | sort -u | { grep -cE 'docs/designs/.*\.md$' || true; })
+    EXEC_PLAN=$(gh pr diff "$PR_NUM" --name-only 2>/dev/null | sort -u | { grep -cE 'docs/exec-plans/.*\.md$' || true; })
     if [ "$DESIGN_DOC" -eq 0 ] || [ "$EXEC_PLAN" -eq 0 ]; then
       ERRORS="${ERRORS}Planning: Missing design doc or exec plan in PR diff\n"
     fi
@@ -154,7 +154,7 @@ fi
 # ── Check 7: Learnings ──
 if [ "$REQUIRE_LEARNINGS" = "true" ]; then
   if ! rh_has_override "learnings" "$PR_NUM"; then
-    LEARNINGS=$(gh pr diff "$PR_NUM" --name-only 2>/dev/null | sort -u | grep -cE 'docs/retros/.*-learnings\.md$' || echo "0")
+    LEARNINGS=$(gh pr diff "$PR_NUM" --name-only 2>/dev/null | sort -u | { grep -cE 'docs/retros/.*-learnings\.md$' || true; })
     if [ "$LEARNINGS" -eq 0 ]; then
       ERRORS="${ERRORS}Learnings: No learnings document in PR diff\n"
     else
