@@ -13,11 +13,11 @@
     "tdd",
     "code-review"
   ],
-  "author": "rosegarden637",
+  "author": "ychua",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/rosegarden637/right-hooks.git"
+    "url": "https://github.com/ychua/right-hooks.git"
   },
   "bin": {
     "right-hooks": "./bin/right-hooks.js"
@@ -34,12 +34,17 @@
     "settings.json",
     "HOOK-CONTRACT.md",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "signatures/"
   ],
   "scripts": {
-    "test": "bash test/run.sh"
+    "test": "bash test/run.sh",
+    "prepare": "husky"
   },
   "engines": {
     "node": ">=18.0.0"
+  },
+  "devDependencies": {
+    "husky": "^9.1.7"
   }
 }
