@@ -1,0 +1,17 @@
+{
+  "codeReview": {
+    "skill": null,
+    "provider": null,
+    "fallback": "Post a code review comment with severity markers on PR #${PR_NUM}"
+  },
+  "qa": {
+    "skill": null,
+    "provider": null,
+    "fallback": "Post a QA comment with test results on PR #${PR_NUM}"
+  },
+  "docConsistency": {
+    "skill": null,
+    "provider": null,
+    "fallback": "Post a documentation consistency comment on PR #${PR_NUM}"
+  }
+}

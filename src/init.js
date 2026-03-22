@@ -159,6 +159,17 @@ function install(projectDir, pkgRoot, preset, profileChoice, tooling) {
   fs.copyFileSync(sigSrc, sigDst);
   console.log(`✓ Signatures configured: ${sigLabel}`);
 
+  // Copy skills config (same detection logic as signatures)
+  const skillsSource = tooling.hasGstack ? 'skills-gstack.json'
+    : tooling.hasSuperpowers ? 'skills-superpowers.json'
+    : 'skills-generic.json';
+  const skillsSrc = path.join(signaturesDir, skillsSource);
+  const skillsDst = path.join(rhDir, 'skills.json');
+  if (fs.existsSync(skillsSrc)) {
+    fs.copyFileSync(skillsSrc, skillsDst);
+    console.log(`✓ Skills configured: ${skillsSource.replace('skills-', '').replace('.json', '')}`);
+  }
+
   // Copy hooks
   const hooksDir = path.join(pkgRoot, 'hooks');
   const hookFiles = fs.readdirSync(hooksDir).filter(f => f.endsWith('.sh'));
@@ -322,4 +333,4 @@ Commands:
 `);
 }
 
-module.exports = { run };
+module.exports = { run, detectTooling };

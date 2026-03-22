@@ -199,6 +199,69 @@ rh_qa_learnings_header() {
     .right-hooks/signatures.json 2>/dev/null || echo "## QA"
 }
 
+# Skill dispatch helper — reads from .right-hooks/skills.json
+# Returns a human-readable suggestion for what skill/action to take for a gate.
+# 4-tier fallback: configured skill → fallback text → runtime detection → generic
+# Usage: rh_skill_command "codeReview" "$PR_NUM"
+_RH_SKILLS_JSON=""
+_RH_SKILLS_LOADED=""
+
+rh_skill_command() {
+  local gate="$1"
+  local pr_num="${2:-}"
+
+  # Load and cache skills.json on first call
+  if [ -z "$_RH_SKILLS_LOADED" ]; then
+    _RH_SKILLS_JSON=$(cat .right-hooks/skills.json 2>/dev/null || echo "{}")
+    _RH_SKILLS_LOADED=1
+  fi
+
+  # Use jq --arg to prevent injection
+  local skill provider
+  skill=$(echo "$_RH_SKILLS_JSON" | jq -r --arg g "$gate" '.[$g].skill // empty' 2>/dev/null)
+  provider=$(echo "$_RH_SKILLS_JSON" | jq -r --arg g "$gate" '.[$g].provider // empty' 2>/dev/null)
+
+  # Tier 1: Configured skill with available provider
+  if [ -n "$skill" ]; then
+    local available=true
+    case "$provider" in
+      gstack)      rh_has_gstack      || available=false ;;
+      superpowers) rh_has_superpowers  || available=false ;;
+    esac
+    if [ "$available" = "true" ]; then
+      rh_debug "skill" "gate=$gate → skill=$skill (provider=$provider available)"
+      echo "Run ${skill}"
+      return
+    fi
+    rh_debug "skill" "gate=$gate → provider=$provider unavailable, falling back"
+  fi
+
+  # Tier 2: Fallback text from skills.json (with ${PR_NUM} interpolation)
+  local fallback
+  fallback=$(echo "$_RH_SKILLS_JSON" | jq -r --arg g "$gate" '.[$g].fallback // empty' 2>/dev/null)
+  if [ -n "$fallback" ]; then
+    echo "${fallback//\$\{PR_NUM\}/$pr_num}"
+    return
+  fi
+
+  # Tier 3: Runtime tool detection (backward compat — no skills.json)
+  case "$gate" in
+    codeReview)
+      if rh_has_gstack; then echo "Run /review"; return; fi
+      if rh_has_superpowers; then echo "Run superpowers:requesting-code-review"; return; fi
+      ;;
+    qa)
+      if rh_has_gstack; then echo "Run /qa"; return; fi
+      ;;
+    docConsistency)
+      if rh_has_gstack; then echo "Run /document-release"; return; fi
+      ;;
+  esac
+
+  # Tier 4: Generic fallback
+  echo "Post a comment on the PR"
+}
+
 # Helper: get branch type prefix
 rh_branch_type() {
   local branch

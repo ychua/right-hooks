@@ -71,11 +71,8 @@ fi
 DOC_PAT=$(rh_doc_pattern)
 DOC_CHECK=$(echo "$RH_ALL_COMMENTS" | jq --arg pat "$DOC_PAT" '[.[] | select(.body | test($pat; "i"))] | length' 2>/dev/null || echo "0")
 if [ "$DOC_CHECK" -eq 0 ]; then
-  if rh_has_gstack; then
-    ERRORS="${ERRORS}Doc consistency: No documentation review comment found. Run /document-release\n"
-  else
-    ERRORS="${ERRORS}Doc consistency: No documentation review comment found — required for all branches\n"
-  fi
+  DOC_HINT=$(rh_skill_command "docConsistency" "$PR_NUM")
+  ERRORS="${ERRORS}Doc consistency: No documentation review comment found. ${DOC_HINT}\n"
 fi
 
 # ── Check 4: Planning artifacts (feat/ only) ──
@@ -96,7 +93,8 @@ if [ "$REQUIRE_CODE_REVIEW" = "true" ]; then
     SEVERITY_PAT=$(rh_review_severity_pattern)
     REVIEW=$(echo "$RH_ALL_COMMENTS" | jq --arg pat "$REVIEW_PAT" --arg sev "$SEVERITY_PAT" '[.[] | select(.body | test($pat; "i")) | select(.body | test($sev; "i"))] | length' 2>/dev/null || echo "0")
     if [ "$REVIEW" -eq 0 ]; then
-      ERRORS="${ERRORS}Code Review: No review comment with severity markers found\n"
+      REVIEW_HINT=$(rh_skill_command "codeReview" "$PR_NUM")
+      ERRORS="${ERRORS}Code Review: No review comment with severity markers found. ${REVIEW_HINT}\n"
     fi
 
     # Check staleness — are there commits after last review?
@@ -145,7 +143,8 @@ if [ "$REQUIRE_QA" = "true" ]; then
     QA_RESULT_PAT=$(rh_qa_result_pattern)
     QA=$(echo "$RH_ALL_COMMENTS" | jq --arg pat "$QA_PAT" --arg res "$QA_RESULT_PAT" '[.[] | select(.body | test($pat; "i")) | select(.body | test($res; "i"))] | length' 2>/dev/null || echo "0")
     if [ "$QA" -eq 0 ]; then
-      ERRORS="${ERRORS}QA: No QA comment with test result markers found\n"
+      QA_HINT=$(rh_skill_command "qa" "$PR_NUM")
+      ERRORS="${ERRORS}QA: No QA comment with test result markers found. ${QA_HINT}\n"
     fi
   fi
 fi
