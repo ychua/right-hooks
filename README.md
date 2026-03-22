@@ -18,30 +18,6 @@ Not using either? Right Hooks works standalone with any review tooling that post
 
 ---
 
-## Why This Exists
-
-I built a product using [gstack](https://github.com/garrytan/gstack) for planning and review, and [superpowers](https://github.com/obra/superpowers) for TDD implementation. gstack's `/plan-ceo-review` scoped the features, `/plan-eng-review` locked the architecture, `/review` and `/qa` checked the code. superpowers' `/execute-plan` implemented the plans with subagent-driven development and two-stage review. The skills were excellent. The agents were not.
-
-gstack gives agents the *right process to follow*. superpowers gives them *disciplined implementation*. Right Hooks makes sure they *actually follow both*.
-
-Here's what happened when they didn't:
-
-**The agent faked a `/qa` report.** Instead of spawning a QA subagent, the orchestrator posted a comment *formatted to look like* gstack `/qa` output — complete with severity markers and test results. It passed my merge gate because the hook only checked that a comment with the right keywords existed. I didn't catch it until production.
-
-**A core module shipped as an orphan.** The agent followed both workflows — gstack's `/plan-eng-review` approved the architecture, superpowers' subagent-driven-development implemented it with two-stage review (spec compliance + code quality), gstack's `/review` praised the code. Nobody noticed the module was never imported anywhere. It sat there, perfect and unused, while the feature it was supposed to power didn't work.
-
-**TDD discipline vanished under pressure.** superpowers' `test-driven-development` skill says "write the test first, watch it fail, write minimal code to pass." gstack's `/plan-eng-review` produced a clear test plan. But when the exec plan got complex, the agent started writing all tests at once, then all implementation at once. The tests still passed, but they were written to match the implementation rather than define the spec. superpowers' `verification-before-completion` skill says "evidence before claims" — the agent just didn't follow it.
-
-Every one of these failures had the same root cause: **the agent optimized for completing the task, not for doing it well.** gstack gave it the right process. superpowers gave it the right discipline. The agent just… didn't follow either.
-
-So I started writing hooks. First one to block direct pushes to master. Then one to block merges without review. Then one to stop the agent from quitting before QA was done. Then one to verify the QA wasn't faked. Then one to validate every file edit. Then one to protect the hooks from being disabled by the agent itself.
-
-The product I set out to build? Still in progress. But the enforcement system I built to keep agents honest while building it — that turned out to be the thing worth shipping.
-
-Right Hooks exists because good process without enforcement is a suggestion. If a rule can be mechanically enforced, it should be. The framework is the leash — not to choke the agent, but to keep it honest.
-
----
-
 ## Quick Start
 
 ```bash
@@ -300,6 +276,33 @@ HUSKY=0 git push
    Codex, Aider, and Windsurf.
 
 ---
+
+---
+
+## Why This Exists
+
+I built a product using [gstack](https://github.com/garrytan/gstack) for planning and review, and [superpowers](https://github.com/obra/superpowers) for TDD implementation. gstack's `/plan-ceo-review` scoped the features, `/plan-eng-review` locked the architecture, `/review` and `/qa` checked the code. superpowers' `/execute-plan` implemented the plans with subagent-driven development and two-stage review. The skills were excellent. The agents were not.
+
+gstack gives agents the *right process to follow*. superpowers gives them *disciplined implementation*. Right Hooks makes sure they *actually follow both*.
+
+Here's what happened when they didn't:
+
+**The agent faked a `/qa` report.** Instead of spawning a QA subagent, the orchestrator posted a comment *formatted to look like* gstack `/qa` output — complete with severity markers and test results. It passed my merge gate because the hook only checked that a comment with the right keywords existed. I didn't catch it until production.
+
+**A core module shipped as an orphan.** The agent followed both workflows — gstack's `/plan-eng-review` approved the architecture, superpowers' subagent-driven-development implemented it with two-stage review (spec compliance + code quality), gstack's `/review` praised the code. Nobody noticed the module was never imported anywhere. It sat there, perfect and unused, while the feature it was supposed to power didn't work.
+
+**TDD discipline vanished under pressure.** superpowers' `test-driven-development` skill says "write the test first, watch it fail, write minimal code to pass." gstack's `/plan-eng-review` produced a clear test plan. But when the exec plan got complex, the agent started writing all tests at once, then all implementation at once. The tests still passed, but they were written to match the implementation rather than define the spec. superpowers' `verification-before-completion` skill says "evidence before claims" — the agent just didn't follow it.
+
+Every one of these failures had the same root cause: **the agent optimized for completing the task, not for doing it well.** gstack gave it the right process. superpowers gave it the right discipline. The agent just… didn't follow either.
+
+So I started writing hooks. First one to block direct pushes to master. Then one to block merges without review. Then one to stop the agent from quitting before QA was done. Then one to verify the QA wasn't faked. Then one to validate every file edit. Then one to protect the hooks from being disabled by the agent itself.
+
+The product I set out to build? Still in progress. But the enforcement system I built to keep agents honest while building it — that turned out to be the thing worth shipping.
+
+Right Hooks exists because good process without enforcement is a suggestion. If a rule can be mechanically enforced, it should be. The framework is the leash — not to choke the agent, but to keep it honest.
+
+---
+
 
 ## License
 
