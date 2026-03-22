@@ -33,6 +33,8 @@ and templates, configures Claude Code, and sets up git hooks.
 Detecting project...
   ✓ TypeScript (tsconfig.json found)
   ✓ GitHub repo (gh auth status ok)
+  ✓ gstack detected (~/.claude/skills/gstack/)
+  ✓ superpowers detected (Claude Code plugin)
 
   Recommended preset: typescript
 
