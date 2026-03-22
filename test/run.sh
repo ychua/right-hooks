@@ -29,6 +29,12 @@ for test_file in "$SCRIPT_DIR"/hooks/test-*.sh "$SCRIPT_DIR"/cli/test-*.sh "$SCR
   
   # Print test lines (indented with ✓ or ✗)
   echo "$output" | grep -E '(✓|✗|→)' || true
+
+  # Debug: show full output if no assertions found
+  if ! echo "$output" | grep -qE '(✓|✗)'; then
+    echo "  [DEBUG] No test output — full stderr/stdout:"
+    echo "$output" | head -20 | sed 's/^/    /'
+  fi
   
   # Extract counts from summary line
   passed=$(echo "$output" | grep -oE '[0-9]+ tests passed' | grep -oE '^[0-9]+' || echo "0")
