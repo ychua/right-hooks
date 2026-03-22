@@ -299,6 +299,10 @@ function install(projectDir, pkgRoot, preset, profileChoice, tooling) {
     fs.writeFileSync(learnedPath, '# Learned Patterns\n\nRules extracted from post-PR learnings. One line per rule, actionable, no context.\n\n');
   }
 
+  // Scaffold docs directories (idempotent — skips existing)
+  const { run: scaffold } = require('./scaffold');
+  scaffold([]);
+
   console.log(`
 Next steps:
   1. Review ${RH_DIR}/profiles/ and customize thresholds
@@ -307,9 +311,12 @@ Next steps:
 
 Commands:
   npx right-hooks status          Show active profile, preset, and gate status
+  npx right-hooks scaffold        Create docs directories
   npx right-hooks preset <name>   Switch language preset
   npx right-hooks profile <name>  Switch enforcement profile
   npx right-hooks doctor          Diagnose hook configuration issues
+  npx right-hooks doctor --fix    Auto-repair common issues
+  npx right-hooks diff            Preview what upgrade would change
   npx right-hooks override        Override a gate with audited reason
   npx right-hooks upgrade         Upgrade generated hooks (preserves custom hooks)
 `);
