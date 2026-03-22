@@ -60,10 +60,21 @@ git branch -M main
 git checkout -q -b feat/main-test
 mkdir -p docs/designs docs/exec-plans
 echo "# Design" > docs/designs/main-test.md
-printf "# Exec Plan\n\n## Definition of Done\n- [ ] works\n" > docs/exec-plans/main-test.md
+printf '# Exec Plan\n\n## Definition of Done\n- [ ] works\n' > docs/exec-plans/main-test.md
 git add . && git commit -q -m "add planning docs"
-run_hook "$HOOK" '{"tool_input":{"command":"gh pr create --title test"}}'
-assert_exit_code 0 "$LAST_EXIT"
+# Debug: verify git state
+git log --oneline --all >"$TEST_TMPDIR/debug-git" 2>&1
+git diff --name-only main...HEAD >>"$TEST_TMPDIR/debug-git" 2>&1 || echo "three-dot failed" >>"$TEST_TMPDIR/debug-git"
+git diff --name-only main..HEAD >>"$TEST_TMPDIR/debug-git" 2>&1 || echo "two-dot failed" >>"$TEST_TMPDIR/debug-git"
+echo '{"tool_input":{"command":"gh pr create --title test"}}' | RH_TEST=1 RH_DEBUG=1 bash "$HOOK" >"$TEST_TMPDIR/debug-stdout" 2>"$TEST_TMPDIR/debug-stderr"
+TEST7_EXIT=$?
+if [ "$TEST7_EXIT" -eq 0 ]; then
+  pass
+else
+  fail "Expected exit 0, got $TEST7_EXIT"
+  echo "    debug-git: $(cat "$TEST_TMPDIR/debug-git")"
+  echo "    stderr: $(cat "$TEST_TMPDIR/debug-stderr")"
+fi
 
 # Test 8: Blocks on main branch without docs (same as master test but with main)
 describe "blocks feat/ on main-based repo without design doc"
