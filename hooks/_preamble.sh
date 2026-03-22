@@ -128,14 +128,14 @@ rh_branch_type() {
   echo "$branch" | cut -d'/' -f1
 }
 
-# Helper: get a gate value from the profile matching the current branch type
-# Usage: rh_gate_value "feat" "ci" → "true" or "false"
-# Iterates .right-hooks/profiles/*.json, returns the gate value from the first
-# profile whose triggers.branchPrefix includes the given branch type.
-# Returns "false" if no profile matches or gate is not defined.
-rh_gate_value() {
+# Helper: find the most specific profile matching a branch type
+# Sets RH_MATCHED_PROFILE to the file path (empty if no match)
+# Uses most-specific-match: fewest branch prefixes wins
+rh_match_profile() {
   local branch_type="$1"
-  local gate="$2"
+  RH_MATCHED_PROFILE=""
+  local best_count=999
+
   for profile_file in .right-hooks/profiles/*.json; do
     [ -f "$profile_file" ] || continue
     local matches
@@ -143,9 +143,28 @@ rh_gate_value() {
       '.triggers.branchPrefix // [] | map(gsub("/"; "")) | index($bt)' \
       "$profile_file" 2>/dev/null)
     if [ "$matches" != "null" ] && [ -n "$matches" ]; then
-      jq -r ".gates.${gate} // false" "$profile_file" 2>/dev/null || echo "false"
-      return
+      local count
+      count=$(jq -r '.triggers.branchPrefix | length' "$profile_file" 2>/dev/null || echo "999")
+      if [ "$count" -lt "$best_count" ]; then
+        best_count="$count"
+        RH_MATCHED_PROFILE="$profile_file"
+      fi
     fi
   done
-  echo "false"
+
+  if [ -n "$RH_MATCHED_PROFILE" ]; then
+    rh_debug "profile" "matched $RH_MATCHED_PROFILE ($best_count prefixes) for $branch_type"
+  fi
+}
+
+# Helper: get a gate value from the previously matched profile
+# Usage: rh_gate_value "gateName" → "true" or "false"
+# Call rh_match_profile first to set RH_MATCHED_PROFILE
+rh_gate_value() {
+  local gate="$1"
+  if [ -n "$RH_MATCHED_PROFILE" ]; then
+    jq -r ".gates.${gate} // false" "$RH_MATCHED_PROFILE" 2>/dev/null || echo "false"
+  else
+    echo "false"
+  fi
 }

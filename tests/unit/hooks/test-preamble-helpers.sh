@@ -22,7 +22,7 @@ cat > .right-hooks/profiles/light.json << 'PROF'
 PROF
 
 # docs/ branch should get light profile (qa=false)
-GATE_VAL=$(source .right-hooks/hooks/_preamble.sh && rh_gate_value "docs" "qa")
+GATE_VAL=$(source .right-hooks/hooks/_preamble.sh && rh_match_profile "docs" && rh_gate_value "qa")
 if [ "$GATE_VAL" = "false" ]; then
   pass
 else
@@ -31,7 +31,7 @@ fi
 
 # feat/ branch should get strict profile (qa=true)
 describe "rh_gate_value returns correct gate for feat/"
-GATE_VAL=$(source .right-hooks/hooks/_preamble.sh && rh_gate_value "feat" "qa")
+GATE_VAL=$(source .right-hooks/hooks/_preamble.sh && rh_match_profile "feat" && rh_gate_value "qa")
 if [ "$GATE_VAL" = "true" ]; then
   pass
 else

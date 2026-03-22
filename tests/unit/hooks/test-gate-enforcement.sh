@@ -57,7 +57,7 @@ cat > .right-hooks/profiles/light.json << 'PROF'
 {"name":"light","triggers":{"branchPrefix":["docs/"]},"gates":{"ci":true,"dod":true,"docConsistency":true,"planningArtifacts":false,"engReview":false,"codeReview":false,"qa":false,"learnings":false,"stopHook":false,"postEditCheck":false}}
 PROF
 
-GATE_VAL=$(cd "$TEST_TMPDIR" && source .right-hooks/hooks/_preamble.sh && rh_gate_value "docs" "codeReview")
+GATE_VAL=$(cd "$TEST_TMPDIR" && source .right-hooks/hooks/_preamble.sh && rh_match_profile "docs" && rh_gate_value "codeReview")
 if [ "$GATE_VAL" = "false" ]; then
   pass
 else
@@ -72,7 +72,7 @@ cat > .right-hooks/profiles/strict.json << 'PROF'
 {"name":"strict","triggers":{"branchPrefix":["feat/"]},"gates":{"ci":true,"dod":true,"docConsistency":true,"planningArtifacts":true,"engReview":true,"codeReview":true,"qa":true,"learnings":true,"stopHook":true,"postEditCheck":true}}
 PROF
 
-GATE_VAL=$(cd "$TEST_TMPDIR" && source .right-hooks/hooks/_preamble.sh && rh_gate_value "feat" "ci")
+GATE_VAL=$(cd "$TEST_TMPDIR" && source .right-hooks/hooks/_preamble.sh && rh_match_profile "feat" && rh_gate_value "ci")
 if [ "$GATE_VAL" = "true" ]; then
   pass
 else
@@ -81,7 +81,7 @@ fi
 
 # ── Test 7: rh_gate_value returns false for unmatched branch ──
 describe "rh_gate_value returns false for unmatched branch type"
-GATE_VAL=$(cd "$TEST_TMPDIR" && source .right-hooks/hooks/_preamble.sh && rh_gate_value "unknown" "ci")
+GATE_VAL=$(cd "$TEST_TMPDIR" && source .right-hooks/hooks/_preamble.sh && rh_match_profile "unknown" && rh_gate_value "ci")
 if [ "$GATE_VAL" = "false" ]; then
   pass
 else
@@ -90,7 +90,7 @@ fi
 
 # ── Test 8: rh_gate_value returns false for missing gate ──
 describe "rh_gate_value returns false for undefined gate"
-GATE_VAL=$(cd "$TEST_TMPDIR" && source .right-hooks/hooks/_preamble.sh && rh_gate_value "feat" "nonexistentGate")
+GATE_VAL=$(cd "$TEST_TMPDIR" && source .right-hooks/hooks/_preamble.sh && rh_match_profile "feat" && rh_gate_value "nonexistentGate")
 if [ "$GATE_VAL" = "false" ]; then
   pass
 else

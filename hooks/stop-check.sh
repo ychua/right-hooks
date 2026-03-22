@@ -16,7 +16,8 @@ if ! echo "$CODE_REVIEW_TYPES" | grep -qw "$BRANCH_TYPE"; then
 fi
 
 # Check if stop hook is enabled in profile
-STOP_ENABLED=$(rh_gate_value "$BRANCH_TYPE" "stopHook")
+rh_match_profile "$BRANCH_TYPE"
+STOP_ENABLED=$(rh_gate_value "stopHook")
 if [ "$STOP_ENABLED" != "true" ]; then
   exit 0
 fi

@@ -23,17 +23,18 @@ fi
 
 # Determine active profile gates — ALL gates loaded from matched profile
 BRANCH_TYPE=$(rh_branch_type)
+rh_match_profile "$BRANCH_TYPE"
 
 # Hard-enforced gates — always run regardless of profile
 REQUIRE_CI=true
 REQUIRE_DOC_CONSISTENCY=true
-# Profile-dependent gates
-REQUIRE_DOD=$(rh_gate_value "$BRANCH_TYPE" "dod")
-REQUIRE_PLANNING=$(rh_gate_value "$BRANCH_TYPE" "planningArtifacts")
-REQUIRE_ENG_REVIEW=$(rh_gate_value "$BRANCH_TYPE" "engReview")
-REQUIRE_CODE_REVIEW=$(rh_gate_value "$BRANCH_TYPE" "codeReview")
-REQUIRE_QA=$(rh_gate_value "$BRANCH_TYPE" "qa")
-REQUIRE_LEARNINGS=$(rh_gate_value "$BRANCH_TYPE" "learnings")
+# Profile-dependent gates (read from matched profile, default false)
+REQUIRE_DOD=$(rh_gate_value "dod")
+REQUIRE_PLANNING=$(rh_gate_value "planningArtifacts")
+REQUIRE_ENG_REVIEW=$(rh_gate_value "engReview")
+REQUIRE_CODE_REVIEW=$(rh_gate_value "codeReview")
+REQUIRE_QA=$(rh_gate_value "qa")
+REQUIRE_LEARNINGS=$(rh_gate_value "learnings")
 
 rh_debug "pre-merge" "branch=$BRANCH type=$BRANCH_TYPE pr=$PR_NUM"
 rh_debug "pre-merge" "gates: ci=$REQUIRE_CI dod=$REQUIRE_DOD doc=$REQUIRE_DOC_CONSISTENCY plan=$REQUIRE_PLANNING review=$REQUIRE_CODE_REVIEW qa=$REQUIRE_QA learn=$REQUIRE_LEARNINGS"
@@ -59,7 +60,7 @@ fi
 # ── Check 2: DoD items checked ──
 if [ "$REQUIRE_DOD" = "true" ]; then
   if ! rh_has_override "dod" "$PR_NUM"; then
-    UNCHECKED=$(gh pr view "$PR_NUM" --json body --jq '.body' 2>/dev/null | grep -c '- \[ \]' || echo "0")
+    UNCHECKED=$(gh pr view "$PR_NUM" --json body --jq '.body' 2>/dev/null | { grep -c -e '- \[ \]' || true; })
     if [ "$UNCHECKED" -gt 0 ]; then
       ERRORS="${ERRORS}DoD: ${UNCHECKED} unchecked item(s) in PR description\n"
     fi
@@ -157,17 +158,17 @@ if [ "$REQUIRE_LEARNINGS" = "true" ]; then
       if [ -n "$LEARNINGS_FILE" ] && [ -f "$LEARNINGS_FILE" ]; then
         REVIEW_HEADER=$(rh_review_learnings_header)
         QA_HEADER=$(rh_qa_learnings_header)
-        HAS_REVIEW_SECTION=$(grep -cF "$REVIEW_HEADER" "$LEARNINGS_FILE" 2>/dev/null || echo "0")
-        HAS_QA_SECTION=$(grep -cF "$QA_HEADER" "$LEARNINGS_FILE" 2>/dev/null || echo "0")
+        HAS_REVIEW_SECTION=$(grep -cF "$REVIEW_HEADER" "$LEARNINGS_FILE" 2>/dev/null || true)
+        HAS_QA_SECTION=$(grep -cF "$QA_HEADER" "$LEARNINGS_FILE" 2>/dev/null || true)
         if [ "$HAS_REVIEW_SECTION" -eq 0 ] || [ "$HAS_QA_SECTION" -eq 0 ]; then
           ERRORS="${ERRORS}Learnings: Missing agent sections (need ${REVIEW_HEADER} and ${QA_HEADER})\n"
         fi
         # Check for "Rules to Extract" section — at least one actionable rule
-        RULES_SECTIONS=$(grep -c '### Rules to Extract' "$LEARNINGS_FILE" 2>/dev/null || echo "0")
+        RULES_SECTIONS=$(grep -c '### Rules to Extract' "$LEARNINGS_FILE" 2>/dev/null || true)
         if [ "$RULES_SECTIONS" -eq 0 ]; then
           ERRORS="${ERRORS}Learnings: Missing '### Rules to Extract' section (required for knowledge distillation)\n"
         else
-          RULE_LINES=$(sed -n '/### Rules to Extract/,/^---$\|^## \|^### [^R]/p' "$LEARNINGS_FILE" | grep -c '^- ' 2>/dev/null || echo "0")
+          RULE_LINES=$(sed -n '/### Rules to Extract/,/^---$\|^## \|^### [^R]/p' "$LEARNINGS_FILE" | { grep -c '^- ' 2>/dev/null || true; })
           if [ "$RULE_LINES" -eq 0 ]; then
             ERRORS="${ERRORS}Learnings: '### Rules to Extract' has no actionable rules (add at least one '- ...' line)\n"
           fi
