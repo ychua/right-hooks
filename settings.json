@@ -1,0 +1,84 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.right-hooks/hooks/block-agent-override.sh",
+            "statusMessage": "Checking for override attempt"
+          },
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.right-hooks/hooks/pre-merge.sh",
+            "statusMessage": "Checking merge requirements"
+          },
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.right-hooks/hooks/pre-push-master.sh",
+            "statusMessage": "Checking push target"
+          },
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.right-hooks/hooks/pre-pr-create.sh",
+            "statusMessage": "Checking planning artifacts"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.right-hooks/hooks/post-edit-check.sh",
+            "timeout": 30,
+            "statusMessage": "Validating edit"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.right-hooks/hooks/stop-check.sh"
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.right-hooks/hooks/subagent-stop-check.sh"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.right-hooks/hooks/session-start.sh"
+          }
+        ]
+      }
+    ],
+    "ConfigChange": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo 'Cannot modify configuration during session' >&2; exit 2"
+          }
+        ]
+      }
+    ]
+  }
+}

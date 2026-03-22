@@ -1,0 +1,71 @@
+#!/usr/bin/env bash
+# RIGHT-HOOKS GENERATED — edits preserved on upgrade
+# Husky post-merge hook: auto-extract learnings + retro reminder
+
+BRANCH=$(git log -1 --format=%s HEAD | grep -oE '#[0-9]+' | head -1 | tr -d '#')
+RIGHT_HOOKS_DIR=".right-hooks"
+LEARNED_PATTERNS="$RIGHT_HOOKS_DIR/rules/learned-patterns.md"
+
+# ── Auto-extract "Rules to Extract" from merged learnings ──
+# Find the most recently modified learnings file
+LATEST_LEARNINGS=$(find docs/retros -name "*-learnings.md" -newer "$RIGHT_HOOKS_DIR/version" 2>/dev/null | sort -r | head -1)
+
+if [ -n "$LATEST_LEARNINGS" ] && [ -f "$LATEST_LEARNINGS" ]; then
+  # Extract all "Rules to Extract" sections and their bullet points
+  RULES=$(sed -n '/^### Rules to Extract/,/^---$\|^## \|^### [^R]/p' "$LATEST_LEARNINGS" \
+    | grep '^- ' \
+    | grep -v '^\- \[Actionable\|^\- \[Example' \
+    | sort -u)
+
+  if [ -n "$RULES" ]; then
+    # Create learned-patterns.md if it doesn't exist
+    if [ ! -f "$LEARNED_PATTERNS" ]; then
+      echo "# Learned Patterns" > "$LEARNED_PATTERNS"
+      echo "" >> "$LEARNED_PATTERNS"
+      echo "Rules extracted from post-PR learnings. One line per rule, actionable, no context." >> "$LEARNED_PATTERNS"
+      echo "" >> "$LEARNED_PATTERNS"
+    fi
+
+    # Append new rules (skip duplicates)
+    NEW_COUNT=0
+    while IFS= read -r rule; do
+      if ! grep -qF "$rule" "$LEARNED_PATTERNS" 2>/dev/null; then
+        echo "$rule" >> "$LEARNED_PATTERNS"
+        NEW_COUNT=$((NEW_COUNT + 1))
+      fi
+    done <<< "$RULES"
+
+    if [ "$NEW_COUNT" -gt 0 ]; then
+      echo ""
+      echo "🥊 Right Hooks: Extracted $NEW_COUNT new rules from $(basename "$LATEST_LEARNINGS")"
+      echo "   → $LEARNED_PATTERNS"
+      echo ""
+      # Auto-commit the updated learned-patterns
+      git add "$LEARNED_PATTERNS" 2>/dev/null
+      git commit -m "chore: extract learned patterns from $(basename "$LATEST_LEARNINGS")" --no-verify 2>/dev/null || true
+    fi
+  fi
+fi
+
+# ── Retro reminder ──
+if command -v find &>/dev/null; then
+  LATEST_RETRO=$(find docs/retros -name "20*-week*.md" -o -name "20*-retro*.md" 2>/dev/null | sort -r | head -1)
+  if [ -n "$LATEST_RETRO" ]; then
+    RETRO_DATE=$(basename "$LATEST_RETRO" | grep -oE '^[0-9]{4}-[0-9]{2}-[0-9]{2}')
+    if [ -n "$RETRO_DATE" ]; then
+      RETRO_EPOCH=$(date -j -f "%Y-%m-%d" "$RETRO_DATE" "+%s" 2>/dev/null || date -d "$RETRO_DATE" "+%s" 2>/dev/null || echo "0")
+      NOW_EPOCH=$(date "+%s")
+      if [ "$RETRO_EPOCH" != "0" ]; then
+        DAYS_AGO=$(( (NOW_EPOCH - RETRO_EPOCH) / 86400 ))
+        if [ "$DAYS_AGO" -gt 7 ]; then
+          echo ""
+          echo "🥊 Right Hooks: Last retro was ${DAYS_AGO} days ago (${RETRO_DATE})."
+          echo "   Consider running a weekly retrospective."
+          echo ""
+        fi
+      fi
+    fi
+  fi
+fi
+
+exit 0

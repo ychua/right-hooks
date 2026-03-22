@@ -1,0 +1,14 @@
+{
+  "language": "typescript",
+  "detect": ["tsconfig.json"],
+  "postEditValidation": {
+    "command": "npx tsc --noEmit 2>&1 | head -10",
+    "filePattern": "\\.(ts|tsx)$",
+    "sourceDirs": ["src/", "lib/", "app/"]
+  },
+  "orphanDetection": {
+    "importPattern": "from.*['\"].*{MODULE}['\"]",
+    "fileExtensions": [".ts", ".tsx"],
+    "excludePatterns": ["test", "__test", ".d.ts"]
+  }
+}

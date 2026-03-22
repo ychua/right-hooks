@@ -1,0 +1,18 @@
+{
+  "name": "strict",
+  "description": "Full lifecycle — planning, implementation, review, QA, learnings",
+  "triggers": {
+    "branchPrefix": ["feat/"]
+  },
+  "gates": {
+    "ci": true,
+    "dod": true,
+    "docConsistency": true,
+    "planningArtifacts": true,
+    "engReview": true,
+    "codeReview": true,
+    "qa": true,
+    "learnings": true,
+    "stopHook": true
+  }
+}

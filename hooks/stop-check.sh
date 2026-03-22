@@ -1,0 +1,95 @@
+#!/usr/bin/env bash
+# RIGHT-HOOKS GENERATED — edits preserved on upgrade
+# Prevent agent from stopping before review/QA cycle is complete
+# Blocks stop (exit 2) on code-review branches when workflow is incomplete
+
+RH_HOOK_SELF=$(realpath "$0" 2>/dev/null || echo "$0")
+source "$(dirname "$0")/_preamble.sh"
+
+BRANCH=$(rh_branch)
+BRANCH_TYPE=$(rh_branch_type)
+
+# Only enforce on code-review branches
+CODE_REVIEW_TYPES="feat fix test refactor perf ci"
+if ! echo "$CODE_REVIEW_TYPES" | grep -qw "$BRANCH_TYPE"; then
+  exit 0
+fi
+
+# Check if stop hook is enabled in profile
+for profile_file in .right-hooks/profiles/*.json; do
+  [ -f "$profile_file" ] || continue
+  MATCHES=$(jq -r --arg bt "$BRANCH_TYPE" '.triggers.branchPrefix // [] | map(gsub("/"; "")) | index($bt)' "$profile_file" 2>/dev/null)
+  if [ "$MATCHES" != "null" ] && [ -n "$MATCHES" ]; then
+    STOP_ENABLED=$(jq -r '.gates.stopHook // false' "$profile_file" 2>/dev/null)
+    if [ "$STOP_ENABLED" != "true" ]; then
+      exit 0
+    fi
+    break
+  fi
+done
+
+PR_NUM=$(rh_pr_number)
+if [ -z "$PR_NUM" ]; then
+  exit 0
+fi
+
+OWNER_REPO=$(gh repo view --json nameWithOwner --jq '.nameWithOwner' 2>/dev/null || echo "")
+BLOCKERS=""
+
+# Detect gstack and superpowers for tool-specific instructions
+HAS_GSTACK=false
+if [ -d ".claude/skills/gstack/" ]; then
+  HAS_GSTACK=true
+fi
+
+HAS_SUPERPOWERS=false
+if [ -d ".claude/skills/superpowers/" ] || [ -d "$HOME/.claude/skills/superpowers/" ]; then
+  HAS_SUPERPOWERS=true
+fi
+
+# Check: Review agent comments exist
+REVIEW_PAT=$(rh_review_pattern)
+REVIEW=$(gh api "repos/${OWNER_REPO}/issues/${PR_NUM}/comments" \
+  --jq --arg pat "$REVIEW_PAT" '[.[] | select(.body | test($pat; "i"))] | length' 2>/dev/null || echo "0")
+if [ "$REVIEW" -eq 0 ]; then
+  if [ "$HAS_GSTACK" = "true" ]; then
+    BLOCKERS="${BLOCKERS}• No review comment found. Run /review to create a code review\n\n"
+  elif [ "$HAS_SUPERPOWERS" = "true" ]; then
+    BLOCKERS="${BLOCKERS}• No review comment found. Use superpowers:requesting-code-review to dispatch a code reviewer\n\n"
+  else
+    BLOCKERS="${BLOCKERS}• No review comment found. Post a code review comment on PR #${PR_NUM}\n\n"
+  fi
+fi
+
+# Check: QA agent comments exist
+QA_PAT=$(rh_qa_pattern)
+QA=$(gh api "repos/${OWNER_REPO}/issues/${PR_NUM}/comments" \
+  --jq --arg pat "$QA_PAT" '[.[] | select(.body | test($pat; "i"))] | length' 2>/dev/null || echo "0")
+if [ "$QA" -eq 0 ]; then
+  if [ "$HAS_GSTACK" = "true" ]; then
+    BLOCKERS="${BLOCKERS}• No QA comment found. Run /qa to run QA\n\n"
+  else
+    BLOCKERS="${BLOCKERS}• No QA comment found. Post a QA comment on PR #${PR_NUM}\n\n"
+  fi
+fi
+
+# Check: Learnings doc exists
+LEARNINGS=$(gh pr diff "$PR_NUM" --name-only 2>/dev/null | grep -cE 'docs/retros/.*-learnings\.md$' || echo "0")
+if [ "$LEARNINGS" -eq 0 ]; then
+  BLOCKERS="${BLOCKERS}• No learnings document found. Create docs/retros/<feature>-learnings.md\n"
+  BLOCKERS="${BLOCKERS}  Template: .right-hooks/templates/learnings.md\n\n"
+fi
+
+if [ -n "$BLOCKERS" ]; then
+  echo "RIGHT-HOOKS: Cannot stop — workflow incomplete on ${BRANCH}:" >&2
+  echo "" >&2
+  printf "$BLOCKERS" >&2
+  if [ "$HAS_SUPERPOWERS" = "true" ]; then
+    echo "TIP: Use superpowers:verification-before-completion before claiming done" >&2
+    echo "" >&2
+  fi
+  echo "Override: npx right-hooks override --gate=stopHook --reason=\"...\"" >&2
+  exit 2
+fi
+
+exit 0

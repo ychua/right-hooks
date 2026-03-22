@@ -1,0 +1,45 @@
+{
+  "name": "right-hooks",
+  "version": "1.0.0",
+  "description": "Write hooks when agents cut corners",
+  "keywords": [
+    "ai",
+    "agents",
+    "claude-code",
+    "codex",
+    "code-quality",
+    "git-hooks",
+    "workflow-enforcement",
+    "tdd",
+    "code-review"
+  ],
+  "author": "rosegarden637",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rosegarden637/right-hooks.git"
+  },
+  "bin": {
+    "right-hooks": "./bin/right-hooks.js"
+  },
+  "files": [
+    "bin/",
+    "src/",
+    "hooks/",
+    "rules/",
+    "templates/",
+    "presets/",
+    "profiles/",
+    "husky/",
+    "settings.json",
+    "HOOK-CONTRACT.md",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "bash test/run.sh"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "language": "rust",
+  "detect": ["Cargo.toml"],
+  "postEditValidation": {
+    "command": "cargo check --message-format short 2>&1 | head -10",
+    "filePattern": "\\.rs$",
+    "sourceDirs": ["src/"]
+  },
+  "orphanDetection": null
+}

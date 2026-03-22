@@ -1,0 +1,1 @@
+../../.right-hooks/rules/git-workflow.md

@@ -1,0 +1,20 @@
+{
+  "codeReview": {
+    "commentPattern": "Strengths|Assessment|Code Review|code-reviewer",
+    "severityPattern": "Critical|Important|Minor|Issues|Approved|Ready to proceed",
+    "learningsHeader": "## Code Review"
+  },
+  "specReview": {
+    "commentPattern": "Spec compliant|Spec Compliance|spec compliance",
+    "resultPattern": "Spec compliant|Issues found|Missing requirements|Extra.*work|Misunderstandings",
+    "learningsHeader": "## Spec Review"
+  },
+  "qa": {
+    "commentPattern": "QA Agent|QA Review|Test Report|QA|test results",
+    "resultPattern": "tests? passing|coverage|Test gaps|test results|tests? (pass|fail)",
+    "learningsHeader": "## QA"
+  },
+  "docConsistency": {
+    "commentPattern": "Documentation health:|Doc Review|docs verified|documentation"
+  }
+}

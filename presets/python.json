@@ -1,0 +1,14 @@
+{
+  "language": "python",
+  "detect": ["pyproject.toml", "setup.py", "requirements.txt"],
+  "postEditValidation": {
+    "command": "mypy {FILE} --no-error-summary 2>&1 | head -10",
+    "filePattern": "\\.py$",
+    "sourceDirs": ["src/", "app/"]
+  },
+  "orphanDetection": {
+    "importPattern": "from.*{MODULE}|import.*{MODULE}",
+    "fileExtensions": [".py"],
+    "excludePatterns": ["test_", "_test.py", "conftest"]
+  }
+}

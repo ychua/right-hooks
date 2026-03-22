@@ -1,0 +1,10 @@
+{
+  "language": "go",
+  "detect": ["go.mod"],
+  "postEditValidation": {
+    "command": "go vet ./... 2>&1 | head -10",
+    "filePattern": "\\.go$",
+    "sourceDirs": ["./"]
+  },
+  "orphanDetection": null
+}

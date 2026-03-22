@@ -1,0 +1,18 @@
+{
+  "name": "standard",
+  "description": "Review + QA, no planning artifacts required",
+  "triggers": {
+    "branchPrefix": ["fix/", "refactor/", "perf/", "test/", "ci/"]
+  },
+  "gates": {
+    "ci": true,
+    "dod": true,
+    "docConsistency": true,
+    "planningArtifacts": false,
+    "engReview": false,
+    "codeReview": true,
+    "qa": true,
+    "learnings": true,
+    "stopHook": true
+  }
+}

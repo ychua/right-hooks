@@ -1,0 +1,18 @@
+{
+  "name": "light",
+  "description": "CI only — minimal enforcement for docs and chores",
+  "triggers": {
+    "branchPrefix": ["docs/", "chore/", "hotfix/"]
+  },
+  "gates": {
+    "ci": true,
+    "dod": true,
+    "docConsistency": true,
+    "planningArtifacts": false,
+    "engReview": false,
+    "codeReview": false,
+    "qa": false,
+    "learnings": false,
+    "stopHook": false
+  }
+}

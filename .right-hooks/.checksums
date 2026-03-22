@@ -1,0 +1,12 @@
+{
+  "_preamble.sh": "5911665e8e64e532ce3c98ea96b81987d00100d94fc5d1fcd92bb35f47c4d8ea",
+  "block-agent-override.sh": "22da592972f0fd8420bdd8120506c2f02872a91f7aab345c89b427566608ec33",
+  "judge.sh": "77e2611e9eeda5779f12b589ffe5296daff68a6d982a31f6bf6b055b8e7e0a43",
+  "post-edit-check.sh": "d614cd3887fca3160a10845561efca90fde6077f39d841e9c827a10a7e00978f",
+  "pre-merge.sh": "276eba839ab1b4c5cbd017d0284f05f1012d1285c9dbc2865f9efa0e6634f933",
+  "pre-pr-create.sh": "3ac3b59071bcebddd08cda128727ae605d5168304d968e67d552cdb1f378207f",
+  "pre-push-master.sh": "fb6e764f3e0a6daecb6130f97a669a8f252b08d704664f61d8334f4596819321",
+  "session-start.sh": "56b512fcd858ffc16dc27e72425ac76fbb86c15b6865823e30f9f48a483ac1ac",
+  "stop-check.sh": "1a27c2b14aafa41e8c4936fc1a85bb46015a664e4a72a6d5c965aab845237a11",
+  "subagent-stop-check.sh": "84899d71fb33e50fdbdf128a2d2120c002f8a0386d7525d6080c34fd328b9f28"
+}

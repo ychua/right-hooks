@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# RIGHT-HOOKS GENERATED — do not edit
+# Husky pre-push hook: branch naming + master push protection
+
+BRANCH=$(git branch --show-current 2>/dev/null || echo "")
+
+# Block direct push to master/main
+if [ "$BRANCH" = "master" ] || [ "$BRANCH" = "main" ]; then
+  echo "RIGHT-HOOKS: Direct push to ${BRANCH} is blocked." >&2
+  echo "Create a branch: git checkout -b feat/your-feature" >&2
+  exit 1
+fi
+
+# Enforce branch naming convention: {type}/{description}
+VALID_TYPES="feat|fix|chore|docs|test|hotfix|refactor|perf|ci|plan"
+if ! echo "$BRANCH" | grep -qE "^(${VALID_TYPES})/[a-z0-9][a-z0-9-]*$"; then
+  echo "RIGHT-HOOKS: Branch name '${BRANCH}' doesn't match convention." >&2
+  echo "Expected: {type}/{description}" >&2
+  echo "Types: feat, fix, chore, docs, test, hotfix, refactor, perf, ci, plan" >&2
+  echo "Description: lowercase alphanumeric with dashes" >&2
+  echo "Example: feat/user-auth, fix/login-crash" >&2
+  exit 1
+fi
+
+exit 0

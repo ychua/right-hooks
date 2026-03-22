@@ -1,0 +1,15 @@
+{
+  "codeReview": {
+    "commentPattern": "Review Agent|Code Review|PR Review|code review",
+    "severityPattern": "CRITICAL|HIGH|MEDIUM|LOW|severity|issues? found",
+    "learningsHeader": "## Review"
+  },
+  "qa": {
+    "commentPattern": "QA Agent|QA Review|Test Report|QA|test results",
+    "resultPattern": "tests? passing|coverage|Test gaps|test results|tests? (pass|fail)",
+    "learningsHeader": "## QA"
+  },
+  "docConsistency": {
+    "commentPattern": "Documentation health:|Doc Review|docs verified|documentation"
+  }
+}
