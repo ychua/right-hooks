@@ -2,7 +2,13 @@
   "name": "standard",
   "description": "Review + QA, no planning artifacts required",
   "triggers": {
-    "branchPrefix": ["fix/", "refactor/", "perf/", "test/", "ci/"]
+    "branchPrefix": [
+      "fix/",
+      "refactor/",
+      "perf/",
+      "test/",
+      "ci/"
+    ]
   },
   "gates": {
     "ci": true,
@@ -13,6 +19,7 @@
     "codeReview": true,
     "qa": true,
     "learnings": true,
-    "stopHook": true
+    "stopHook": true,
+    "postEditCheck": true
   }
 }

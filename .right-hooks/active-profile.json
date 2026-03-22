@@ -1,18 +1,21 @@
 {
-  "name": "standard",
-  "description": "Review + QA, no planning artifacts required",
+  "name": "strict",
+  "description": "Full lifecycle \u2014 planning, implementation, review, QA, learnings",
   "triggers": {
-    "branchPrefix": ["fix/", "refactor/", "perf/", "test/", "ci/"]
+    "branchPrefix": [
+      "feat/"
+    ]
   },
   "gates": {
     "ci": true,
     "dod": true,
     "docConsistency": true,
-    "planningArtifacts": false,
-    "engReview": false,
+    "planningArtifacts": true,
+    "engReview": true,
     "codeReview": true,
     "qa": true,
     "learnings": true,
-    "stopHook": true
+    "stopHook": true,
+    "postEditCheck": true
   }
 }

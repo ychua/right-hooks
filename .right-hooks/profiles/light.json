@@ -1,8 +1,12 @@
 {
   "name": "light",
-  "description": "CI only — minimal enforcement for docs and chores",
+  "description": "CI only \u2014 minimal enforcement for docs and chores",
   "triggers": {
-    "branchPrefix": ["docs/", "chore/", "hotfix/"]
+    "branchPrefix": [
+      "docs/",
+      "chore/",
+      "hotfix/"
+    ]
   },
   "gates": {
     "ci": true,
@@ -13,6 +17,7 @@
     "codeReview": false,
     "qa": false,
     "learnings": false,
-    "stopHook": false
+    "stopHook": false,
+    "postEditCheck": true
   }
 }
