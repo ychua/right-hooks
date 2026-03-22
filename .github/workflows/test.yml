@@ -7,7 +7,25 @@ on:
     branches: [main]
 
 jobs:
-  test:
+  unit:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Run unit tests
+        run: npm run test:unit
+        env:
+          RH_TEST: '1'
+
+  integration:
+    name: Integration Tests
     runs-on: ubuntu-latest
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -20,11 +38,6 @@ jobs:
 
       - name: Install bashunit
         run: curl -s https://bashunit.typeddevs.com/install.sh | bash
-
-      - name: Run unit tests
-        run: npm run test:unit
-        env:
-          RH_TEST: '1'
 
       - name: Run integration tests
         run: npm run test:integration
