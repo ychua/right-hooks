@@ -100,11 +100,13 @@ function interactiveSetup(projectDir, pkgRoot, detectedPreset) {
   });
 
   const profiles = ['recommended', 'strict', 'light', 'custom'];
-  console.log('Select enforcement profile:');
+  console.log('Select enforcement profile (see README for details):');
   console.log('  1) Recommended (strict for feat/, standard for fix/, light for docs/)');
   console.log('  2) Strict only (full lifecycle for everything)');
   console.log('  3) Light (minimal enforcement)');
-  console.log('  4) Custom (toggle individual gates in .right-hooks/active-profile.json)\n');
+  console.log('  4) Custom (toggle individual gates in .right-hooks/active-profile.json)');
+  console.log('');
+  console.log('  📖 https://github.com/ychua/right-hooks#enforcement-profiles\n');
 
   rl.question('Choice [1]: ', (answer) => {
     const choice = parseInt(answer) || 1;
