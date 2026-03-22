@@ -85,11 +85,13 @@ npx right-hooks upgrade         # Upgrade generated hooks (preserves custom)
 
 ## Opinions
 
-Right Hooks is opinionated about one thing: **agents must leave a trail.**
+Right Hooks is opinionated. These are the hills we die on:
+
+📝 **Doc-First** — Design docs and exec plans exist before code. On `feat/` branches, the `pre-pr-create` hook blocks PR creation without them. You can't skip the thinking step.
 
 📚 **Learnings-First** — Every PR produces a learnings document with a `### Rules to Extract` section. Post-merge, those rules are **automatically extracted** into `.right-hooks/rules/learned-patterns.md` — a file that accumulates over time, making the system smarter with every PR. The point isn't to document what went right. The point is to document what went wrong so future agents don't repeat it.
 
-This is the only opinion with full mechanical enforcement — `pre-merge` verifies the learnings doc exists with substantive content, and the post-merge hook auto-extracts rules. Everything else (TDD, design docs, review depth) is configurable through profiles and optional rules.
+Both opinions have mechanical enforcement. Everything else (TDD discipline, review depth, code style) is configurable through profiles and optional rules.
 
 ---
 
