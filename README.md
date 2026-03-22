@@ -72,7 +72,7 @@ Right Hooks is opinionated. These are the hills we die on:
 
 📚 **Learnings-First** — Every PR produces a learnings document with a `### Rules to Extract` section. Post-merge, those rules are **automatically extracted** into `.right-hooks/rules/learned-patterns.md` — a file that accumulates over time, making the system smarter with every PR. The point isn't to document what went right. The point is to document what went wrong so future agents don't repeat it.
 
-Both opinions have mechanical enforcement. Everything else (TDD discipline, review depth, code style) is configurable through profiles and optional rules.
+Both opinions have mechanical enforcement. The four `rh-` rules in `.claude/rules/` are our additional opinions — battery-included but removable. Delete the symlink if you disagree.
 
 ---
 
