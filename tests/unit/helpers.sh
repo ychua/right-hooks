@@ -122,16 +122,14 @@ assert_stdout_contains() {
 }
 
 # Run a hook with JSON input, capture exit code and stderr
-# Uses env -i to guarantee a clean environment — no inherited git vars from CI
+# Clean environment + bypass global gitconfig to isolate from CI runner
 run_hook() {
   local hook="$1"
   local json_input="$2"
   local stdout_file="$TEST_TMPDIR/stdout"
   local stderr_file="$TEST_TMPDIR/stderr"
-  local cwd
-  cwd=$(pwd)
 
-  echo "$json_input" | env -i HOME="$HOME" PATH="$PATH" TERM="${TERM:-dumb}" RH_TEST=1 bash -c 'cd "$1" && exec bash "$2"' _ "$cwd" "$hook" >"$stdout_file" 2>"$stderr_file"
+  echo "$json_input" | GIT_CONFIG_NOSYSTEM=1 GIT_CONFIG_GLOBAL=/dev/null RH_TEST=1 bash "$hook" >"$stdout_file" 2>"$stderr_file"
   LAST_EXIT=$?
   LAST_STDOUT="$stdout_file"
   LAST_STDERR="$stderr_file"
