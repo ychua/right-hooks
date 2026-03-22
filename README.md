@@ -138,34 +138,6 @@ How each check is enforced. **GH** = Git Hook, **CH** = Claude Code Hook, **B** 
 
 ---
 
-## Three-Layer Architecture
-
-```
-┌─────────────────────────────────────────────────────────┐
-│  Layer 3: Custom (user-defined)                         │
-│  Your own lint rules, custom gates, project-specific    │
-│  validations. Add whatever you need.                    │
-├─────────────────────────────────────────────────────────┤
-│  Layer 2: Language (preset-driven)                      │
-│  Post-edit validation (tsc/mypy/cargo), orphan module   │
-│  detection. Auto-detected or manually selected.         │
-├─────────────────────────────────────────────────────────┤
-│  Layer 1: Universal (works everywhere)                  │
-│  Merge gates, push protection, stop hook, subagent      │
-│  verification, judge layer, session context. Pure       │
-│  GitHub API + git. No language dependencies.            │
-└─────────────────────────────────────────────────────────┘
-```
-
-### Language Presets
-
-| Preset | Auto-detect | Post-edit validation | Orphan detection |
-|--------|------------|---------------------|-----------------|
-| TypeScript | `tsconfig.json` | `tsc --noEmit` | import pattern matching |
-| Python | `pyproject.toml` | `mypy` | import pattern matching |
-| Go | `go.mod` | `go vet` | — |
-| Rust | `Cargo.toml` | `cargo check` | — |
-| Generic | (fallback) | — | — |
 
 ### Enforcement Profiles
 
@@ -195,6 +167,35 @@ Custom profile example — enable only what you want:
 ```
 
 ---
+
+## Three-Layer Architecture
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  Layer 3: Custom (user-defined)                         │
+│  Your own lint rules, custom gates, project-specific    │
+│  validations. Add whatever you need.                    │
+├─────────────────────────────────────────────────────────┤
+│  Layer 2: Language (preset-driven)                      │
+│  Post-edit validation (tsc/mypy/cargo), orphan module   │
+│  detection. Auto-detected or manually selected.         │
+├─────────────────────────────────────────────────────────┤
+│  Layer 1: Universal (works everywhere)                  │
+│  Merge gates, push protection, stop hook, subagent      │
+│  verification, judge layer, session context. Pure       │
+│  GitHub API + git. No language dependencies.            │
+└─────────────────────────────────────────────────────────┘
+```
+
+### Language Presets
+
+| Preset | Auto-detect | Post-edit validation | Orphan detection |
+|--------|------------|---------------------|-----------------|
+| TypeScript | `tsconfig.json` | `tsc --noEmit` | import pattern matching |
+| Python | `pyproject.toml` | `mypy` | import pattern matching |
+| Go | `go.mod` | `go vet` | — |
+| Rust | `Cargo.toml` | `cargo check` | — |
+| Generic | (fallback) | — | — |
 
 ## Override / Escape Hatch
 
