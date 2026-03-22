@@ -49,29 +49,27 @@ run_hook "$HOOK" '{"tool_input":{"command":"git status"}}'
 assert_exit_code 0 "$LAST_EXIT"
 
 # Test 7: Works with 'main' as default branch (regression for master→main bug)
+# Note: Uses GIT_DIR/GIT_WORK_TREE to isolate from CI's checkout repo
 describe "detects design doc with main as default branch"
-cd "$TEST_TMPDIR"
 MAIN_REPO="$TEST_TMPDIR/main-repo"
+rm -rf "$MAIN_REPO"
 mkdir -p "$MAIN_REPO" && cd "$MAIN_REPO"
 git init -q
 git commit --allow-empty -m "init" -q
 git branch -M main
-# Create a feat branch with design doc + exec plan
 git checkout -q -b feat/main-test
 mkdir -p docs/designs docs/exec-plans
 echo "# Design" > docs/designs/main-test.md
 printf '# Exec Plan\n\n## Definition of Done\n- [ ] works\n' > docs/exec-plans/main-test.md
 git add . && git commit -q -m "add planning docs"
-# Debug: verify git state
-git log --oneline --all >"$TEST_TMPDIR/debug-git" 2>&1
-git diff --name-only main...HEAD >>"$TEST_TMPDIR/debug-git" 2>&1 || echo "three-dot failed" >>"$TEST_TMPDIR/debug-git"
-git diff --name-only main..HEAD >>"$TEST_TMPDIR/debug-git" 2>&1 || echo "two-dot failed" >>"$TEST_TMPDIR/debug-git"
-echo '{"tool_input":{"command":"gh pr create --title test"}}' | RH_TEST=1 RH_DEBUG=1 bash "$HOOK" >"$TEST_TMPDIR/debug-stdout" 2>"$TEST_TMPDIR/debug-stderr"
+# Run hook with explicit GIT_DIR to prevent git from traversing to parent repo
+echo '{"tool_input":{"command":"gh pr create --title test"}}' | \
+  GIT_DIR="$MAIN_REPO/.git" GIT_WORK_TREE="$MAIN_REPO" RH_TEST=1 bash "$HOOK" >/dev/null 2>"$TEST_TMPDIR/stderr7"
 TEST7_EXIT=$?
 if [ "$TEST7_EXIT" -eq 0 ]; then
   pass
 else
-  fail "exit=$TEST7_EXIT git=$(cat "$TEST_TMPDIR/debug-git" | tr '\n' '|') err=$(cat "$TEST_TMPDIR/debug-stderr" | tr '\n' '|')"
+  fail "exit=$TEST7_EXIT err=$(cat "$TEST_TMPDIR/stderr7" | tr '\n' '|')"
 fi
 
 # Test 8: Blocks on main branch without docs (same as master test but with main)
@@ -81,7 +79,8 @@ git checkout -q main
 git checkout -q -b feat/no-docs
 echo "code" > code.js
 git add . && git commit -q -m "code without docs"
-run_hook "$HOOK" '{"tool_input":{"command":"gh pr create --title test"}}'
-assert_exit_code 2 "$LAST_EXIT"
+echo '{"tool_input":{"command":"gh pr create --title test"}}' | \
+  GIT_DIR="$MAIN_REPO/.git" GIT_WORK_TREE="$MAIN_REPO" RH_TEST=1 bash "$HOOK" >/dev/null 2>&1
+assert_exit_code 2 $?
 
 print_summary
