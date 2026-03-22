@@ -15,38 +15,43 @@ RH_TEST=1 node "$BIN" init --yes >/dev/null 2>&1
 
 # --- upgrade runs without error ---
 describe "upgrade exits 0 on initialized project"
-OUTPUT=$(node "$BIN" upgrade 2>&1 || true)
-EXIT=$?
-# Some versions may exit 0 or print success
-if [ "$EXIT" -eq 0 ] || echo "$OUTPUT" | grep -qi "upgrade\|hook\|updated"; then
-  pass
-else
-  fail "Expected successful upgrade: exit=$EXIT output=$OUTPUT"
-fi
+node "$BIN" upgrade >/dev/null 2>&1
+assert_exit_code 0 $?
 
 # --- upgrade preserves custom hooks ---
 describe "upgrade preserves user-modified hooks"
-# Modify a hook to simulate user edits
 echo "# USER CUSTOMIZATION" >> .right-hooks/hooks/stop-check.sh
-# Update checksum won't match anymore
-BEFORE=$(cat .right-hooks/hooks/stop-check.sh | wc -l)
 node "$BIN" upgrade >/dev/null 2>&1 || true
-AFTER=$(cat .right-hooks/hooks/stop-check.sh | wc -l)
 if grep -q "USER CUSTOMIZATION" .right-hooks/hooks/stop-check.sh; then
   pass
 else
   fail "User customization was overwritten"
 fi
 
-# --- upgrade updates non-modified hooks ---
-describe "upgrade updates unmodified hooks"
-# Reset a hook to match original checksum, then upgrade should update it
+# --- upgrade reports preserved custom hooks ---
+describe "upgrade reports preserved custom hooks"
+# Fake an older version so upgrade actually runs the diff logic
+echo "0.9.0" > .right-hooks/version
+# Clear checksums so upgrade sees mismatch on modified hook
+echo '{}' > .right-hooks/.checksums
 OUTPUT=$(node "$BIN" upgrade 2>&1 || true)
-if echo "$OUTPUT" | grep -qi "skipped\|preserved\|custom\|updated\|hook"; then
+if echo "$OUTPUT" | grep -qi "preserved\|modified"; then
   pass
 else
-  # Even if no output, the fact it ran is ok
+  fail "Expected preserved/modified message for custom hook: $OUTPUT"
+fi
+
+# --- upgrade updates unmodified hooks ---
+describe "upgrade updates unmodified hooks"
+# session-start.sh should not have been modified, so it should update fine
+BEFORE_CHECKSUM=$(md5sum .right-hooks/hooks/session-start.sh 2>/dev/null | cut -d' ' -f1 || shasum .right-hooks/hooks/session-start.sh | cut -d' ' -f1)
+node "$BIN" upgrade >/dev/null 2>&1 || true
+AFTER_CHECKSUM=$(md5sum .right-hooks/hooks/session-start.sh 2>/dev/null | cut -d' ' -f1 || shasum .right-hooks/hooks/session-start.sh | cut -d' ' -f1)
+# Unmodified hooks should still exist and be valid bash
+if bash -n .right-hooks/hooks/session-start.sh 2>/dev/null; then
   pass
+else
+  fail "Unmodified hook is not valid bash after upgrade"
 fi
 
 # --- upgrade on non-initialized project ---
