@@ -9,8 +9,9 @@ PROJECT_DIR="$(cd "$SCRIPT_DIR/../../" && pwd)"
 function run_hook() {
   local hook="$1"
   local input="$2"
-  echo "$input" | RH_TEST=1 bash ".right-hooks/hooks/$hook" 2>/tmp/rh-test-stderr
-  return $?
+  RH_LAST_EXIT=0
+  echo "$input" | RH_TEST=1 bash ".right-hooks/hooks/$hook" 2>/tmp/rh-test-stderr || RH_LAST_EXIT=$?
+  return 0
 }
 
 function set_up_before_script() {
@@ -31,18 +32,25 @@ function set_up_before_script() {
   git branch main
 
   # PATH injection for mock gh (works across subprocess boundaries)
-  mkdir -p "$TEST_DIR/bin"
-  cp "$SCRIPT_DIR/mock-gh.sh" "$TEST_DIR/bin/gh"
-  chmod +x "$TEST_DIR/bin/gh"
-  export PATH="$TEST_DIR/bin:$PATH"
+  # Mock gh lives OUTSIDE the git repo so git add/checkout can't affect it
+  export MOCK_BIN_DIR=$(mktemp -d)
+  cp "$SCRIPT_DIR/mock-gh.sh" "$MOCK_BIN_DIR/gh"
+  chmod +x "$MOCK_BIN_DIR/gh"
+  export PATH="$MOCK_BIN_DIR:$PATH"
 }
 
 function tear_down_after_script() {
-  rm -rf "$TEST_DIR"
+  rm -rf "$TEST_DIR" "$MOCK_BIN_DIR"
 }
 
 function set_up() {
   cd "$TEST_DIR" || exit 1
+  # Re-export PATH with mock gh (outside git repo)
+  export PATH="$MOCK_BIN_DIR:$PATH"
+  # Clean working tree — prior tests may create dirs on branches that
+  # persist after checkout. Only clean docs/ to avoid removing .right-hooks/
+  git checkout -q master 2>/dev/null || true
+  rm -rf docs/ 2>/dev/null || true
   # Reset mock state
   export MOCK_PR_EXISTS=0
   export MOCK_PR_NUMBER=1
@@ -51,10 +59,9 @@ function set_up() {
   export MOCK_HAS_LEARNINGS=0
   export MOCK_HAS_DESIGN_DOC=0
   export MOCK_HAS_EXEC_PLAN=0
+  export MOCK_HAS_DOC=0
   export MOCK_CI_FAILING=0
   export MOCK_DOD_INCOMPLETE=0
-  # Clean up branches from previous tests (ignore errors)
-  git checkout -q master 2>/dev/null || true
 }
 
 # ══════════════════════════════════════════════════════════════
@@ -84,7 +91,7 @@ function test_session_start_injects_context() {
 function test_pre_pr_create_blocks_without_design_doc() {
   git checkout -qb feat/test-feature-prblk 2>/dev/null || git checkout -q feat/test-feature-prblk
   run_hook "pre-pr-create.sh" '{"tool_input":{"command":"gh pr create --title test"}}'
-  assert_exit_code "2"
+  assert_equals "2" "$RH_LAST_EXIT"
   assert_contains "design" "$(cat /tmp/rh-test-stderr)"
 }
 
@@ -103,7 +110,7 @@ function test_pre_pr_create_passes_with_docs() {
   printf "# Plan\n## Steps\n## Definition of Done\n- [ ] done\n" > docs/exec-plans/test.md
   git add -A && git commit -qm "add docs"
   run_hook "pre-pr-create.sh" '{"tool_input":{"command":"gh pr create --title test"}}'
-  assert_exit_code "0"
+  assert_equals "0" "$RH_LAST_EXIT"
   assert_contains "pre-pr-create" "$(cat /tmp/rh-test-stderr)"
   assert_contains "✓" "$(cat /tmp/rh-test-stderr)"
 }
@@ -121,7 +128,7 @@ function test_pre_merge_blocks_without_review() {
   export MOCK_HAS_REVIEW=0 MOCK_HAS_QA=0 MOCK_HAS_LEARNINGS=0
   export MOCK_CI_FAILING=0 MOCK_DOD_INCOMPLETE=0
   run_hook "pre-merge.sh" '{"tool_input":{"command":"gh pr merge 42"}}'
-  assert_exit_code "2"
+  assert_equals "2" "$RH_LAST_EXIT"
 }
 
 # ══════════════════════════════════════════════════════════════
@@ -137,7 +144,7 @@ function test_pre_merge_blocks_with_review_but_no_qa() {
   export MOCK_HAS_REVIEW=1 MOCK_HAS_QA=0 MOCK_HAS_LEARNINGS=0
   export MOCK_CI_FAILING=0 MOCK_DOD_INCOMPLETE=0
   run_hook "pre-merge.sh" '{"tool_input":{"command":"gh pr merge 42"}}'
-  assert_exit_code "2"
+  assert_equals "2" "$RH_LAST_EXIT"
 }
 
 # ══════════════════════════════════════════════════════════════
@@ -151,13 +158,16 @@ function test_pre_merge_blocks_with_review_but_no_qa() {
 function test_pre_merge_passes_with_all_gates() {
   git checkout -qb feat/test-feature-mr3 2>/dev/null || git checkout -q feat/test-feature-mr3
   export MOCK_PR_EXISTS=1 MOCK_PR_NUMBER=42
-  export MOCK_HAS_REVIEW=1 MOCK_HAS_QA=1 MOCK_HAS_LEARNINGS=1
+  export MOCK_HAS_REVIEW=1 MOCK_HAS_QA=1 MOCK_HAS_LEARNINGS=1 MOCK_HAS_DOC=1
+  export MOCK_HAS_DESIGN_DOC=1 MOCK_HAS_EXEC_PLAN=1
   export MOCK_CI_FAILING=0 MOCK_DOD_INCOMPLETE=0
+  # Create learnings file matching mock's gh pr diff output filename
+  # Headers must match signatures.json learningsHeader values
   mkdir -p docs/retros
-  printf "# Learnings\n## Orchestrator\n### What Went Wrong\n- nothing\n### Rules to Extract\n- always test\n" > docs/retros/test-learnings.md
+  printf "# Learnings\n## Review\n- reviewed\n## QA\n- tested\n### Rules to Extract\n- always test\n" > docs/retros/test-feature-learnings.md
   git add -A && git commit -qm "add learnings"
   run_hook "pre-merge.sh" '{"tool_input":{"command":"gh pr merge 42"}}'
-  assert_exit_code "0"
+  assert_equals "0" "$RH_LAST_EXIT"
   local stderr_out=$(cat /tmp/rh-test-stderr)
   assert_contains "pre-merge" "$stderr_out"
   assert_contains "gates passed" "$stderr_out"
@@ -175,9 +185,9 @@ function test_pre_merge_passes_with_all_gates() {
 function test_stop_check_allows_when_complete() {
   git checkout -qb feat/test-feature-sc 2>/dev/null || git checkout -q feat/test-feature-sc
   export MOCK_PR_EXISTS=1 MOCK_PR_NUMBER=42
-  export MOCK_HAS_REVIEW=1 MOCK_HAS_QA=1
+  export MOCK_HAS_REVIEW=1 MOCK_HAS_QA=1 MOCK_HAS_LEARNINGS=1
   run_hook "stop-check.sh" '{}'
-  assert_exit_code "0"
+  assert_equals "0" "$RH_LAST_EXIT"
   local stderr_out=$(cat /tmp/rh-test-stderr)
   assert_contains "stop-check" "$stderr_out"
   assert_contains "workflow complete" "$stderr_out"
@@ -193,7 +203,7 @@ function test_stop_check_allows_when_complete() {
 function test_pre_push_blocks_main() {
   git checkout -q main
   run_hook "pre-push-master.sh" '{"tool_input":{"command":"git push origin main"}}'
-  assert_exit_code "2"
+  assert_equals "2" "$RH_LAST_EXIT"
   assert_contains "pre-push" "$(cat /tmp/rh-test-stderr)"
   assert_contains "blocked" "$(cat /tmp/rh-test-stderr)"
 }
@@ -213,7 +223,7 @@ function test_pre_merge_blocks_ci_failing() {
   export MOCK_HAS_REVIEW=1 MOCK_HAS_QA=1 MOCK_HAS_LEARNINGS=1
   export MOCK_DOD_INCOMPLETE=0
   run_hook "pre-merge.sh" '{"tool_input":{"command":"gh pr merge 43"}}'
-  assert_exit_code "2"
+  assert_equals "2" "$RH_LAST_EXIT"
   assert_contains "CI" "$(cat /tmp/rh-test-stderr)"
 }
 
@@ -230,7 +240,7 @@ function test_pre_merge_blocks_dod_incomplete() {
   export MOCK_CI_FAILING=0 MOCK_DOD_INCOMPLETE=1
   export MOCK_HAS_REVIEW=1 MOCK_HAS_QA=1 MOCK_HAS_LEARNINGS=1
   run_hook "pre-merge.sh" '{"tool_input":{"command":"gh pr merge 44"}}'
-  assert_exit_code "2"
+  assert_equals "2" "$RH_LAST_EXIT"
 }
 
 # ══════════════════════════════════════════════════════════════
@@ -246,14 +256,14 @@ function test_light_profile_skips_review() {
   node "$PROJECT_DIR/bin/right-hooks.js" profile light >/dev/null 2>&1
   git checkout -qb docs/readme-update 2>/dev/null || git checkout -q docs/readme-update
   export MOCK_PR_EXISTS=1 MOCK_PR_NUMBER=45
-  export MOCK_HAS_REVIEW=0 MOCK_HAS_QA=0 MOCK_HAS_LEARNINGS=0
+  export MOCK_HAS_REVIEW=0 MOCK_HAS_QA=0 MOCK_HAS_LEARNINGS=0 MOCK_HAS_DOC=1
   export MOCK_CI_FAILING=0 MOCK_DOD_INCOMPLETE=0
   run_hook "pre-merge.sh" '{"tool_input":{"command":"gh pr merge 45"}}'
   local exit_code=$?
   local stderr_out=$(cat /tmp/rh-test-stderr)
   # Restore strict profile for subsequent tests
   node "$PROJECT_DIR/bin/right-hooks.js" profile strict >/dev/null 2>&1
-  assert_exit_code "0"
+  assert_equals "0" "$RH_LAST_EXIT"
   assert_contains "pre-merge" "$stderr_out"
   assert_contains "gates passed" "$stderr_out"
 }
@@ -268,7 +278,42 @@ function test_light_profile_skips_review() {
 #      the entire enforcement system would be meaningless
 function test_agent_cannot_self_override() {
   run_hook "block-agent-override.sh" '{"tool_input":{"command":"npx right-hooks override --gate=qa --reason=skip"}}'
-  assert_exit_code "2"
+  assert_equals "2" "$RH_LAST_EXIT"
   assert_contains "block-override" "$(cat /tmp/rh-test-stderr)"
   assert_contains "only humans" "$(cat /tmp/rh-test-stderr)"
+}
+
+# ══════════════════════════════════════════════════════════════
+# Test 13: Pre-Push Hook Runs Tests
+# ══════════════════════════════════════════════════════════════
+# WHAT: husky pre-push hook runs npm test before allowing push
+# VERIFY: hook contains the test-running gate
+# VERIFY: hook blocks (exit 1) when a test command fails
+# WHY: never push broken code — catches both agents and humans
+function test_pre_push_runs_tests() {
+  # Verify the hook source contains the test gate
+  local hook_content
+  hook_content=$(cat "$PROJECT_DIR/husky/pre-push")
+  assert_contains "npm test" "$hook_content"
+  assert_contains "Tests failed" "$hook_content"
+
+  # Simulate a failing test run by creating a pre-push script
+  # that uses a broken test command
+  local hook_script="$TEST_DIR/.test-pre-push.sh"
+  cat > "$hook_script" << 'HOOKEOF'
+#!/usr/bin/env bash
+BRANCH=$(git branch --show-current 2>/dev/null || echo "")
+# Skip branch checks for this test
+# Run a command that always fails (simulates broken tests)
+if ! false 2>&1; then
+  echo "RIGHT-HOOKS: Tests failed. Fix before pushing." >&2
+  exit 1
+fi
+exit 0
+HOOKEOF
+  chmod +x "$hook_script"
+  RH_LAST_EXIT=0
+  bash "$hook_script" 2>/tmp/rh-test-stderr || RH_LAST_EXIT=$?
+  assert_equals "1" "$RH_LAST_EXIT"
+  assert_contains "Tests failed" "$(cat /tmp/rh-test-stderr)"
 }

@@ -22,4 +22,12 @@ if ! echo "$BRANCH" | grep -qE "^(${VALID_TYPES})/[a-z0-9][a-z0-9-]*$"; then
   exit 1
 fi
 
+# Run tests before push — never push broken code
+echo "🥊 Running tests before push..." >&2
+if ! npm test 2>&1; then
+  echo "" >&2
+  echo "RIGHT-HOOKS: Tests failed. Fix before pushing." >&2
+  exit 1
+fi
+
 exit 0

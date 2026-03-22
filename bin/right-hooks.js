@@ -4,7 +4,7 @@
 const path = require('path');
 const fs = require('fs');
 
-const VERSION = '1.0.0';
+const VERSION = require('../package.json').version;
 const COMMANDS = {
   init: 'Initialize Right Hooks in the current project',
   status: 'Show active profile, preset, and gate status',

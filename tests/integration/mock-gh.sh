@@ -8,7 +8,11 @@ case "$1" in
     exit 0
     ;;
   repo)
-    echo '{"nameWithOwner":"testuser/testrepo"}'
+    if echo "$*" | grep -q "\-\-jq"; then
+      echo "testuser/testrepo"
+    else
+      echo '{"nameWithOwner":"testuser/testrepo"}'
+    fi
     exit 0
     ;;
   pr)
@@ -61,17 +65,20 @@ case "$1" in
   api)
     if echo "$*" | grep -q "comments"; then
       COMMENTS="[]"
+      # Build comment array as valid JSON — use printf to avoid \n issues
+      ITEMS=""
       if [ "${MOCK_HAS_REVIEW:-}" = "1" ]; then
-        COMMENTS='[{"body":"## Code Review\n**Severity:** MEDIUM\nFindings in src/index.ts"}]'
+        ITEMS='{"body":"## Review Agent\\n**Severity:** MEDIUM\\nFindings in src/index.ts"}'
       fi
       if [ "${MOCK_HAS_QA:-}" = "1" ]; then
-        if [ "$COMMENTS" = "[]" ]; then
-          COMMENTS='[{"body":"## QA Review\nAll tests passing, coverage 95%"}]'
-        else
-          COMMENTS=$(echo "$COMMENTS" | sed 's/\]$/,{"body":"## QA Review\\nAll tests passing, coverage 95%"}]/')
-        fi
+        [ -n "$ITEMS" ] && ITEMS="$ITEMS,"
+        ITEMS="${ITEMS}"'{"body":"## QA Agent\\nAll tests passing, coverage 95%"}'
       fi
-      echo "$COMMENTS"
+      if [ "${MOCK_HAS_DOC:-}" = "1" ]; then
+        [ -n "$ITEMS" ] && ITEMS="$ITEMS,"
+        ITEMS="${ITEMS}"'{"body":"Documentation health: all docs consistent with code changes"}'
+      fi
+      printf '[%s]' "$ITEMS"
     fi
     ;;
   *)

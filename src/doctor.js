@@ -46,8 +46,8 @@ function run(args) {
   // Check hooks exist and are executable
   const hooksDir = path.join(rhDir, 'hooks');
   const expectedHooks = [
-    '_preamble.sh', 'pre-merge.sh', 'pre-push-master.sh', 'pre-pr-create.sh',
-    'stop-check.sh', 'post-edit-check.sh', 'subagent-stop-check.sh',
+    '_preamble.sh', 'block-agent-override.sh', 'pre-merge.sh', 'pre-push-master.sh',
+    'pre-pr-create.sh', 'stop-check.sh', 'post-edit-check.sh', 'subagent-stop-check.sh',
     'judge.sh', 'session-start.sh',
   ];
 

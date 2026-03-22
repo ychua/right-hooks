@@ -30,9 +30,37 @@ function findInPlugins(homeDir, name) {
   return false;
 }
 
-const VERSION = '1.0.0';
+const VERSION = require('../package.json').version;
 const RH_DIR = '.right-hooks';
 const CLAUDE_DIR = '.claude';
+
+// Detect gstack and superpowers installations
+function detectTooling(projectDir) {
+  const homeDir = require('os').homedir();
+  const hasGstack = fs.existsSync(path.join(projectDir, '.claude', 'skills', 'gstack'))
+    || fs.existsSync(path.join(homeDir, '.claude', 'skills', 'gstack'))
+    || findInPlugins(homeDir, 'gstack');
+  const hasSuperpowers = fs.existsSync(path.join(projectDir, '.claude', 'skills', 'superpowers'))
+    || fs.existsSync(path.join(homeDir, '.claude', 'skills', 'superpowers'))
+    || findInPlugins(homeDir, 'superpowers');
+
+  const gstackLocation = hasGstack
+    ? (fs.existsSync(path.join(projectDir, '.claude', 'skills', 'gstack'))
+      ? '.claude/skills/gstack/'
+      : fs.existsSync(path.join(homeDir, '.claude', 'skills', 'gstack'))
+        ? '~/.claude/skills/gstack/'
+        : 'Claude Code plugin')
+    : null;
+  const superpowersLocation = hasSuperpowers
+    ? (fs.existsSync(path.join(projectDir, '.claude', 'skills', 'superpowers'))
+      ? '.claude/skills/superpowers/'
+      : fs.existsSync(path.join(homeDir, '.claude', 'skills', 'superpowers'))
+        ? '~/.claude/skills/superpowers/'
+        : 'Claude Code plugin')
+    : null;
+
+  return { hasGstack, hasSuperpowers, gstackLocation, superpowersLocation };
+}
 
 function run(args) {
   const projectDir = process.cwd();
@@ -54,29 +82,13 @@ function run(args) {
   }
 
   // Detect gstack + superpowers early (before profile selection)
-  const homeDir = require('os').homedir();
-  const hasGstack = fs.existsSync(path.join(projectDir, '.claude', 'skills', 'gstack'))
-    || fs.existsSync(path.join(homeDir, '.claude', 'skills', 'gstack'))
-    || findInPlugins(homeDir, 'gstack');
-  const hasSuperpowers = fs.existsSync(path.join(projectDir, '.claude', 'skills', 'superpowers'))
-    || fs.existsSync(path.join(homeDir, '.claude', 'skills', 'superpowers'))
-    || findInPlugins(homeDir, 'superpowers');
+  const tooling = detectTooling(projectDir);
 
-  if (hasGstack) {
-    const gsLoc = fs.existsSync(path.join(projectDir, '.claude', 'skills', 'gstack'))
-      ? '.claude/skills/gstack/'
-      : fs.existsSync(path.join(homeDir, '.claude', 'skills', 'gstack'))
-        ? '~/.claude/skills/gstack/'
-        : 'Claude Code plugin';
-    console.log(`  ✓ gstack detected (${gsLoc})`);
+  if (tooling.hasGstack) {
+    console.log(`  ✓ gstack detected (${tooling.gstackLocation})`);
   }
-  if (hasSuperpowers) {
-    const spLoc = fs.existsSync(path.join(projectDir, '.claude', 'skills', 'superpowers'))
-      ? '.claude/skills/superpowers/'
-      : fs.existsSync(path.join(homeDir, '.claude', 'skills', 'superpowers'))
-        ? '~/.claude/skills/superpowers/'
-        : 'Claude Code plugin';
-    console.log(`  ✓ superpowers detected (${spLoc})`);
+  if (tooling.hasSuperpowers) {
+    console.log(`  ✓ superpowers detected (${tooling.superpowersLocation})`);
   }
 
   if (detection.detected.length > 0) {
@@ -87,13 +99,13 @@ function run(args) {
   const nonInteractive = args.includes('--yes') || args.includes('-y') || !process.stdin.isTTY;
   
   if (nonInteractive) {
-    install(projectDir, pkgRoot, detection.preset, 'recommended');
+    install(projectDir, pkgRoot, detection.preset, 'recommended', tooling);
   } else {
-    interactiveSetup(projectDir, pkgRoot, detection.preset);
+    interactiveSetup(projectDir, pkgRoot, detection.preset, tooling);
   }
 }
 
-function interactiveSetup(projectDir, pkgRoot, detectedPreset) {
+function interactiveSetup(projectDir, pkgRoot, detectedPreset, tooling) {
   const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout,
@@ -112,11 +124,11 @@ function interactiveSetup(projectDir, pkgRoot, detectedPreset) {
     const choice = parseInt(answer) || 1;
     const profile = profiles[choice - 1] || 'recommended';
     rl.close();
-    install(projectDir, pkgRoot, detectedPreset, profile);
+    install(projectDir, pkgRoot, detectedPreset, profile, tooling);
   });
 }
 
-function install(projectDir, pkgRoot, preset, profileChoice) {
+function install(projectDir, pkgRoot, preset, profileChoice, tooling) {
   const rhDir = path.join(projectDir, RH_DIR);
   const claudeDir = path.join(projectDir, CLAUDE_DIR);
 
@@ -136,18 +148,11 @@ function install(projectDir, pkgRoot, preset, profileChoice) {
     fs.mkdirSync(dir, { recursive: true });
   }
 
-  // Copy signatures (detection already done in main, re-detect here for install)
+  // Copy signatures — use tooling detection results (no re-detection needed)
   const signaturesDir = path.join(pkgRoot, 'signatures');
-  const hd = require('os').homedir();
-  const gstack = fs.existsSync(path.join(projectDir, '.claude', 'skills', 'gstack'))
-    || fs.existsSync(path.join(hd, '.claude', 'skills', 'gstack'))
-    || findInPlugins(hd, 'gstack');
-  const superpowers = fs.existsSync(path.join(projectDir, '.claude', 'skills', 'superpowers'))
-    || fs.existsSync(path.join(hd, '.claude', 'skills', 'superpowers'))
-    || findInPlugins(hd, 'superpowers');
 
-  let sigSource = gstack ? 'gstack.json' : superpowers ? 'superpowers.json' : 'generic.json';
-  let sigLabel = gstack ? 'gstack' : superpowers ? 'superpowers' : 'generic';
+  const sigSource = tooling.hasGstack ? 'gstack.json' : tooling.hasSuperpowers ? 'superpowers.json' : 'generic.json';
+  const sigLabel = tooling.hasGstack ? 'gstack' : tooling.hasSuperpowers ? 'superpowers' : 'generic';
 
   const sigSrc = path.join(signaturesDir, sigSource);
   const sigDst = path.join(rhDir, 'signatures.json');
@@ -232,6 +237,19 @@ function install(projectDir, pkgRoot, preset, profileChoice) {
   }
   console.log('✓ Husky hooks configured (pre-push + post-merge)');
 
+  // Check if husky is actually installed in the target project
+  const huskyInstalled = fs.existsSync(path.join(projectDir, 'node_modules', 'husky'))
+    || fs.existsSync(path.join(projectDir, 'node_modules', '.package-lock.json'));
+  let huskyInPkg = false;
+  try {
+    const targetPkg = JSON.parse(fs.readFileSync(path.join(projectDir, 'package.json'), 'utf8'));
+    huskyInPkg = !!(targetPkg.devDependencies?.husky || targetPkg.dependencies?.husky);
+  } catch {}
+  if (!huskyInstalled && !huskyInPkg) {
+    console.log('  ⚠ husky not found in this project. Install it: npm install -D husky');
+    console.log('  Without husky, git hooks (pre-push, post-merge) will not fire.');
+  }
+
   // Generate checksums
   const checksums = {};
   for (const file of hookFiles) {
@@ -254,8 +272,23 @@ function install(projectDir, pkgRoot, preset, profileChoice) {
         existing = JSON.parse(fs.readFileSync(settingsDst, 'utf8'));
       } catch {}
     }
-    // Merge hooks into existing settings
-    existing.hooks = { ...existing.hooks, ...settings.hooks };
+    // Deep merge: for each hook event, append new hooks (skip duplicates by command)
+    if (!existing.hooks) existing.hooks = {};
+    for (const [event, entries] of Object.entries(settings.hooks)) {
+      if (!existing.hooks[event]) {
+        existing.hooks[event] = entries;
+      } else {
+        const existingCmds = new Set(
+          existing.hooks[event].flatMap(e => (e.hooks || []).map(h => h.command))
+        );
+        for (const entry of entries) {
+          const newHooks = (entry.hooks || []).filter(h => !existingCmds.has(h.command));
+          if (newHooks.length > 0) {
+            existing.hooks[event].push({ ...entry, hooks: newHooks });
+          }
+        }
+      }
+    }
     fs.writeFileSync(settingsDst, JSON.stringify(existing, null, 2));
   }
   console.log('✓ Claude Code settings.json updated');
