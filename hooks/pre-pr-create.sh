@@ -26,10 +26,14 @@ ERRORS=""
 # Detect default branch (main or master)
 DEFAULT_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@')
 if [ -z "$DEFAULT_BRANCH" ]; then
-  # Fallback: try common names
+  # Fallback: try remote then local branches
   if git rev-parse --verify origin/main >/dev/null 2>&1; then
     DEFAULT_BRANCH="main"
   elif git rev-parse --verify origin/master >/dev/null 2>&1; then
+    DEFAULT_BRANCH="master"
+  elif git rev-parse --verify main >/dev/null 2>&1; then
+    DEFAULT_BRANCH="main"
+  elif git rev-parse --verify master >/dev/null 2>&1; then
     DEFAULT_BRANCH="master"
   else
     DEFAULT_BRANCH="main"
@@ -37,8 +41,11 @@ if [ -z "$DEFAULT_BRANCH" ]; then
 fi
 rh_debug "pre-pr-create" "base branch=$DEFAULT_BRANCH"
 
-# Get list of changed files once
-CHANGED_FILES=$(git diff --name-only "${DEFAULT_BRANCH}...HEAD" 2>/dev/null || echo "")
+# Get list of changed files once (try three-dot first, fall back to two-dot)
+CHANGED_FILES=$(git diff --name-only "${DEFAULT_BRANCH}...HEAD" 2>/dev/null)
+if [ -z "$CHANGED_FILES" ]; then
+  CHANGED_FILES=$(git diff --name-only "${DEFAULT_BRANCH}..HEAD" 2>/dev/null || echo "")
+fi
 
 # Check for design doc
 DESIGN_DOCS=$(echo "$CHANGED_FILES" | { grep -cE 'docs/designs/.*\.md$' || true; })

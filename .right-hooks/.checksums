@@ -4,7 +4,7 @@
   "judge.sh": "2d443ae889b6dbe1584faac5f19f57a1ae389baaeeed729dd2ec0b99a9b3206f",
   "post-edit-check.sh": "d3d9eaa403a6575f884b8eb1b702f7f18d290ee8af00a49945b30ea1828b9555",
   "pre-merge.sh": "80c368ca143bc0fbaafad37c4c7b3bb3ac76b81d626661fb9c72b9ac209498bd",
-  "pre-pr-create.sh": "e967a68e7c4a7b36dc32c60b3ac87adb6313d4ae7258216ac5b8d0d81ebb4d07",
+  "pre-pr-create.sh": "982a58c0fb530eb962ae570f734d738cdb9cea2dcdb3714b07dc14d0ba6290c2",
   "pre-push-master.sh": "789f30baf13c6792b9ed78dbefef4a62705422109cc66350531aabb5e5a3fbcc",
   "session-start.sh": "ee89aeaeefe2a87135cfe0026868cea30d55b11d930a2c4546312a4581bda0fa",
   "stop-check.sh": "2257068a6d8f35a2598553d68b99956d4c408238a3003039f63c85cf3926a044",
