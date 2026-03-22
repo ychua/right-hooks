@@ -81,7 +81,7 @@ if [ "$LEARNINGS" -eq 0 ]; then
 fi
 
 if [ -n "$BLOCKERS" ]; then
-  echo "RIGHT-HOOKS: Cannot stop — workflow incomplete on ${BRANCH}:" >&2
+  rh_block "stop-check" "workflow incomplete on ${BRANCH}"
   echo "" >&2
   printf "$BLOCKERS" >&2
   if [ "$HAS_SUPERPOWERS" = "true" ]; then
@@ -92,4 +92,5 @@ if [ -n "$BLOCKERS" ]; then
   exit 2
 fi
 
+rh_pass "stop-check" "workflow complete on ${BRANCH}"
 exit 0

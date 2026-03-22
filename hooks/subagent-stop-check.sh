@@ -34,7 +34,7 @@ SUBAGENT_OUTPUT=$(echo "$INPUT" | jq -r '.output // ""' 2>/dev/null)
 REVIEW_PAT=$(rh_review_pattern)
 QA_PAT=$(rh_qa_pattern)
 if echo "$SUBAGENT_OUTPUT" | grep -qiE "${REVIEW_PAT}|${QA_PAT}|code review|quality assurance"; then
-  echo "RIGHT-HOOKS: Review/QA subagent finished but no verified PR comment found." >&2
+  rh_block "subagent-check" "no verified PR comment found"
   echo "" >&2
   echo "Subagents must:" >&2
   echo "  1. Post findings via: gh pr comment $PR_NUM --body '...'" >&2
@@ -47,4 +47,5 @@ if echo "$SUBAGENT_OUTPUT" | grep -qiE "${REVIEW_PAT}|${QA_PAT}|code review|qual
   exit 2
 fi
 
+rh_pass "subagent-check" "output verified"
 exit 0

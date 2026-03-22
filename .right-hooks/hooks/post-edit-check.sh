@@ -35,7 +35,7 @@ ERRORS=$(eval "$COMMAND" 2>&1)
 RESULT=$?
 
 if [ $RESULT -ne 0 ] && [ -n "$ERRORS" ]; then
-  echo "RIGHT-HOOKS: Validation errors after editing $FILE:" >&2
+  rh_block "post-edit-check" "validation failed: $(basename "$FILE")"
   echo "$ERRORS" >&2
   exit 2
 fi
@@ -52,11 +52,11 @@ if [ -n "$ORPHAN_PATTERN" ] && [ "$ORPHAN_PATTERN" != "null" ]; then
     
     IMPORTERS=$(eval "grep -rl '$IMPORT_CHECK' $SOURCE_DIRS $FILE_EXTS 2>/dev/null | grep -v '$FILE' | head -1" 2>/dev/null || echo "")
     if [ -z "$IMPORTERS" ]; then
-      echo "RIGHT-HOOKS WARNING: New file $FILE has no importers — potential orphan module" >&2
-      echo "Make sure something imports this file before merging." >&2
+      rh_info "post-edit-check" "⚠ new file $(basename "$FILE") has no importers"
       # Warning only — don't block (exit 0)
     fi
   fi
 fi
 
+rh_pass "post-edit-check" "$(basename "$FILE") clean"
 exit 0

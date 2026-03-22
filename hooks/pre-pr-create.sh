@@ -55,10 +55,11 @@ if [ "$TOTAL_PLANS" -gt 0 ]; then
 fi
 
 if [ -n "$ERRORS" ]; then
-  echo "RIGHT-HOOKS: PR creation blocked — planning artifacts required for feat/ branches:" >&2
+  rh_block "pre-pr-create" "planning artifacts missing for feat/ branch"
   echo "" >&2
   printf "$ERRORS" >&2
   exit 2
 fi
 
+rh_pass "pre-pr-create" "design doc + exec plan found"
 exit 0

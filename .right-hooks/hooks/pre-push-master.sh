@@ -16,7 +16,7 @@ fi
 BRANCH=$(rh_branch)
 
 if [ "$BRANCH" = "master" ] || [ "$BRANCH" = "main" ]; then
-  echo "RIGHT-HOOKS: Direct push to ${BRANCH} is blocked." >&2
+  rh_block "pre-push" "direct push to ${BRANCH} blocked"
   echo "All changes must go through a PR. Create a branch first:" >&2
   echo "  git checkout -b feat/your-feature" >&2
   echo "  git push -u origin feat/your-feature" >&2
@@ -24,4 +24,5 @@ if [ "$BRANCH" = "master" ] || [ "$BRANCH" = "main" ]; then
   exit 2
 fi
 
+rh_pass "pre-push" "branch ok (${BRANCH})"
 exit 0

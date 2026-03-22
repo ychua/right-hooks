@@ -47,7 +47,7 @@ assert_exit_code 2 "$LAST_EXIT"
 
 # Test 6: Stderr shows validation errors on failure
 describe "stderr shows validation errors"
-assert_stderr_contains "Validation errors" "$LAST_STDERR"
+assert_stderr_contains "validation failed" "$LAST_STDERR"
 
 # Test 7: Allow when no file_path in input
 describe "allows when no file_path in input"

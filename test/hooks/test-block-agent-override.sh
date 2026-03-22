@@ -14,7 +14,7 @@ assert_exit_code 2 "$LAST_EXIT"
 
 # Test 2: Stderr contains helpful message
 describe "stderr says only humans can override"
-assert_stderr_contains "Only humans can override gates" "$LAST_STDERR"
+assert_stderr_contains "only humans can override gates" "$LAST_STDERR"
 
 # Test 3: Block with different spacing
 describe "blocks right-hooks  override (extra space)"

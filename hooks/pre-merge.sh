@@ -195,7 +195,7 @@ fi
 
 # ── Result ──
 if [ -n "$ERRORS" ]; then
-  echo "RIGHT-HOOKS: Merge blocked — gates not satisfied:" >&2
+  rh_block "pre-merge" "gates not satisfied"
   echo "" >&2
   printf "$ERRORS" >&2
   echo "" >&2
@@ -203,4 +203,11 @@ if [ -n "$ERRORS" ]; then
   exit 2
 fi
 
+# Count how many gates were checked
+GATE_COUNT=0
+for g in ci dod docConsistency planningArtifacts codeReview qa learnings; do
+  VAL=$(echo "$PROFILE" | jq -r ".gates.${g} // false" 2>/dev/null)
+  [ "$VAL" = "true" ] && GATE_COUNT=$((GATE_COUNT + 1))
+done
+rh_pass "pre-merge" "all ${GATE_COUNT} gates passed"
 exit 0

@@ -45,5 +45,6 @@ PROFILE=$(cat .right-hooks/active-profile.json 2>/dev/null | jq -r '.name // "un
 STATUS="$STATUS | Preset: $PRESET | Profile: $PROFILE"
 
 # Output as context injection
+rh_info "session-start" "${PROFILE} profile | ${PRESET} preset | ${BRANCH}"
 echo "{\"context\": \"$STATUS\"}"
 exit 0

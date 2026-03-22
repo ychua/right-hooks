@@ -28,6 +28,24 @@ else
   fi
 fi
 
+# Logging helpers — all output to stderr
+# Usage: rh_pass "hook-name" "message"
+#        rh_block "hook-name" "message"
+#        rh_info "hook-name" "message"
+rh_pass() {
+  [ "${RH_QUIET:-}" = "1" ] && return
+  printf '🥊 %-18s → ✓ %s\n' "$1" "$2" >&2
+}
+
+rh_block() {
+  printf '🥊 %-18s → ✗ %s\n' "$1" "$2" >&2
+}
+
+rh_info() {
+  [ "${RH_QUIET:-}" = "1" ] && return
+  printf '🥊 %-18s → %s\n' "$1" "$2" >&2
+}
+
 # Helper: get current branch
 rh_branch() {
   git branch --show-current 2>/dev/null || echo ""
