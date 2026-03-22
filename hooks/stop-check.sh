@@ -32,7 +32,7 @@ BLOCKERS=""
 # Batch-fetch all PR comments once (paginated)
 RH_ALL_COMMENTS=""
 if [ -n "$OWNER_REPO" ]; then
-  RH_ALL_COMMENTS=$(GH_HTTP_TIMEOUT=15 gh api --paginate "repos/${OWNER_REPO}/issues/${PR_NUM}/comments" 2>/dev/null || echo "")
+  RH_ALL_COMMENTS=$(GH_HTTP_TIMEOUT=15 gh api --paginate "repos/${OWNER_REPO}/issues/${PR_NUM}/comments" 2>/dev/null | jq -s 'add // []' 2>/dev/null || echo "[]")
 fi
 
 # Detect gstack and superpowers for tool-specific instructions

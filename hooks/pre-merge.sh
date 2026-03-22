@@ -42,8 +42,8 @@ OWNER_REPO=$(gh repo view --json nameWithOwner --jq '.nameWithOwner' 2>/dev/null
 # Batch-fetch all PR comments once (paginated) — used by doc, review, QA checks
 RH_ALL_COMMENTS=""
 if [ -n "$OWNER_REPO" ]; then
-  RH_ALL_COMMENTS=$(GH_HTTP_TIMEOUT=15 gh api --paginate "repos/${OWNER_REPO}/issues/${PR_NUM}/comments" 2>/dev/null || echo "")
-  if [ -z "$RH_ALL_COMMENTS" ]; then
+  RH_ALL_COMMENTS=$(GH_HTTP_TIMEOUT=15 gh api --paginate "repos/${OWNER_REPO}/issues/${PR_NUM}/comments" 2>/dev/null | jq -s 'add // []' 2>/dev/null || echo "[]")
+  if [ "$RH_ALL_COMMENTS" = "[]" ]; then
     rh_info "pre-merge" "⚠ Could not fetch PR comments — comment-based gates skipped"
   fi
 fi
