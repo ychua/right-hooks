@@ -48,4 +48,31 @@ git checkout -q feat/new-feature
 run_hook "$HOOK" '{"tool_input":{"command":"git status"}}'
 assert_exit_code 0 "$LAST_EXIT"
 
+# Test 7: Works with 'main' as default branch (regression for master→main bug)
+describe "detects design doc with main as default branch"
+cd "$TEST_TMPDIR"
+MAIN_REPO="$TEST_TMPDIR/main-repo"
+mkdir -p "$MAIN_REPO" && cd "$MAIN_REPO"
+git init -q
+git commit --allow-empty -m "init" -q
+git branch -M main
+# Create a feat branch with design doc + exec plan
+git checkout -q -b feat/main-test
+mkdir -p docs/designs docs/exec-plans
+echo "# Design" > docs/designs/main-test.md
+printf "# Exec Plan\n\n## Definition of Done\n- [ ] works\n" > docs/exec-plans/main-test.md
+git add . && git commit -q -m "add planning docs"
+run_hook "$HOOK" '{"tool_input":{"command":"gh pr create --title test"}}'
+assert_exit_code 0 "$LAST_EXIT"
+
+# Test 8: Blocks on main branch without docs (same as master test but with main)
+describe "blocks feat/ on main-based repo without design doc"
+cd "$MAIN_REPO"
+git checkout -q main
+git checkout -q -b feat/no-docs
+echo "code" > code.js
+git add . && git commit -q -m "code without docs"
+run_hook "$HOOK" '{"tool_input":{"command":"gh pr create --title test"}}'
+assert_exit_code 2 "$LAST_EXIT"
+
 print_summary
