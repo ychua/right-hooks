@@ -18,7 +18,7 @@ output formats. The three tools complement each other:
 - **superpowers** — Build + Test + Verify (the implementation)
 - **Right Hooks** — Enforce all of it (the guardrails)
 
-Not using either? Right Hooks works standalone with any review tooling that posts PR comments — CodeRabbit, custom scripts, or manual reviews. Configure patterns in `.right-hooks/signatures.json`.
+Not using either? Right Hooks works standalone with any review tooling that posts PR comments — CodeRabbit, custom scripts, or manual reviews. Configure comment patterns in `.right-hooks/signatures.json` and skill dispatch in `.right-hooks/skills.json`.
 
 ---
 
@@ -48,7 +48,8 @@ Detecting project...
     Light (minimal enforcement)
     Custom (toggle individual gates)
 
-✓ Hooks installed to .right-hooks/hooks/ (9 hooks)
+✓ Hooks installed to .right-hooks/hooks/ (10 hooks)
+✓ Skills configured: gstack
 ✓ Rules symlinked to .claude/rules/ (4 rule files)
 ✓ Templates installed to .right-hooks/templates/ (3 templates)
 ✓ Husky hooks configured (pre-push + post-merge)
@@ -59,9 +60,14 @@ Detecting project...
 
 ```bash
 npx right-hooks status          # Show active profile, preset, and gate status
+npx right-hooks scaffold        # Create docs directories (designs, exec-plans, retros)
+npx right-hooks skills          # Show configured review/QA/doc skills
+npx right-hooks skills set <gate> <skill>  # Configure a skill for a gate
 npx right-hooks preset python   # Switch language preset
 npx right-hooks profile strict  # Switch enforcement profile
 npx right-hooks doctor          # Diagnose hook configuration issues
+npx right-hooks doctor --fix    # Auto-repair common issues
+npx right-hooks diff            # Preview what upgrade would change
 npx right-hooks override        # Override a gate with audited reason
 npx right-hooks upgrade         # Upgrade generated hooks (preserves custom)
 ```

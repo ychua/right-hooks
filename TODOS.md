@@ -3,26 +3,13 @@
 Deferred work from the Phase 1 CEO + Eng review (2026-03-22).
 See `docs/designs/right-hooks-v1-review.md` for full context.
 
-## Phase 2 — CLI Power-Ups
+## Phase 2 — CLI Power-Ups ✅
 
-### `npx right-hooks scaffold`
-**What:** Create `docs/designs/`, `docs/exec-plans/`, `docs/retros/` with `.gitkeep` files.
-Also run during `init` so first-time `feat/` branch users don't hit confusing hook failures.
-**Why:** Hooks enforce docs directories exist in PR diffs, but init doesn't create them.
-**Effort:** S (human: ~1h / CC: ~10min) | **Priority:** P1
-**Depends on:** Phase 1 complete
+**Completed:** PR #6 (2026-03-22)
 
-### `npx right-hooks doctor --fix`
-**What:** Auto-fix common issues: re-generate checksums, re-set permissions, fix symlinks, install missing hooks.
-**Why:** Doctor currently only diagnoses — users must manually fix each issue.
-**Effort:** S (human: ~2h / CC: ~15min) | **Priority:** P2
-**Depends on:** Phase 1 (install/upgrade bugs fixed first — per Codex review)
-
-### `npx right-hooks diff`
-**What:** Preview what `upgrade` would change before committing. Compare installed hooks against package hooks, show updated/preserved/added.
-**Why:** Builds trust in the upgrade process. Should be prerequisite safety tooling for doctor --fix.
-**Effort:** S (human: ~2h / CC: ~15min) | **Priority:** P2
-**Depends on:** Phase 1 complete
+- ~~`npx right-hooks scaffold`~~ — creates docs directories with .gitkeep, runs during init
+- ~~`npx right-hooks doctor --fix`~~ — auto-repairs missing hooks, permissions, checksums
+- ~~`npx right-hooks diff`~~ — preview what upgrade would change
 
 ## Phase 3 — Stats & Observability
 
