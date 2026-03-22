@@ -26,7 +26,7 @@ assert_exit_code 2 "$LAST_EXIT"
 
 # Test 3: Stderr contains helpful message
 describe "stderr tells user to create branch"
-assert_stderr_contains "direct push to" "$LAST_STDERR"
+assert_stderr_contains "Direct push to" "$LAST_STDERR"
 
 # Test 4: Allow push to feature branch
 describe "allows push to feature branch"

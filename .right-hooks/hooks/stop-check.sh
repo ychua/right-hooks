@@ -79,14 +79,14 @@ if [ "$LEARNINGS" -eq 0 ]; then
 fi
 
 if [ -n "$BLOCKERS" ]; then
-  rh_block "stop-check" "workflow incomplete on ${BRANCH}"
-  echo "" >&2
-  printf "$BLOCKERS" >&2
+  rh_block_start "stop-check" "BLOCKED"
+  printf "$BLOCKERS" | while IFS= read -r line; do
+    [ -n "$line" ] && rh_block_item "$line"
+  done
   if [ "$HAS_SUPERPOWERS" = "true" ]; then
-    echo "TIP: Use superpowers:verification-before-completion before claiming done" >&2
-    echo "" >&2
+    rh_block_item "TIP: Use verification-before-completion"
   fi
-  echo "Override: npx right-hooks override --gate=stopHook --reason=\"...\"" >&2
+  rh_block_end "Override: npx right-hooks override"
   exit 2
 fi
 

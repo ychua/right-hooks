@@ -112,7 +112,7 @@ function test_pre_pr_create_passes_with_docs() {
   run_hook "pre-pr-create.sh" '{"tool_input":{"command":"gh pr create --title test"}}'
   assert_equals "0" "$RH_LAST_EXIT"
   assert_contains "pre-pr-create" "$(cat /tmp/rh-test-stderr)"
-  assert_contains "✓" "$(cat /tmp/rh-test-stderr)"
+  assert_contains "✅" "$(cat /tmp/rh-test-stderr)"
 }
 
 # ══════════════════════════════════════════════════════════════
@@ -205,7 +205,7 @@ function test_pre_push_blocks_main() {
   run_hook "pre-push-master.sh" '{"tool_input":{"command":"git push origin main"}}'
   assert_equals "2" "$RH_LAST_EXIT"
   assert_contains "pre-push" "$(cat /tmp/rh-test-stderr)"
-  assert_contains "blocked" "$(cat /tmp/rh-test-stderr)"
+  assert_contains "BLOCKED" "$(cat /tmp/rh-test-stderr)"
 }
 
 # ══════════════════════════════════════════════════════════════
@@ -280,7 +280,7 @@ function test_agent_cannot_self_override() {
   run_hook "block-agent-override.sh" '{"tool_input":{"command":"npx right-hooks override --gate=qa --reason=skip"}}'
   assert_equals "2" "$RH_LAST_EXIT"
   assert_contains "block-override" "$(cat /tmp/rh-test-stderr)"
-  assert_contains "only humans" "$(cat /tmp/rh-test-stderr)"
+  assert_contains "Only humans" "$(cat /tmp/rh-test-stderr)"
 }
 
 # ══════════════════════════════════════════════════════════════

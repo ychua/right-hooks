@@ -40,16 +40,59 @@ else
 fi
 
 # Logging helpers — all output to stderr
-# Usage: rh_pass "hook-name" "message"
-#        rh_block "hook-name" "message"
-#        rh_info "hook-name" "message"
-rh_pass() {
-  [ "${RH_QUIET:-}" = "1" ] && return
-  printf '🥊 %-18s → ✓ %s\n' "$1" "$2" >&2
+# Boxing ring UI: thin box for pass, heavy box for block
+# Box width = visible character columns (excluding border chars)
+_RH_W=38
+
+# Pad a string to fill the box width. Emojis count as 2 display cols
+# but ${#str} counts bytes/chars. We add 1 extra pad per emoji found.
+_rh_pad() {
+  local str="$1"
+  local emoji_count
+  emoji_count=$(printf '%s' "$str" | grep -oE '(\xE2[\x9C-\x9D][\x85-\xBD]|\xF0\x9F[\x8E-\x9A][\x80-\xBF])' 2>/dev/null | wc -l | tr -d ' ')
+  local pad=$(( _RH_W - ${#str} + emoji_count ))
+  [ "$pad" -lt 0 ] && pad=0
+  printf '%*s' "$pad" ""
 }
 
+rh_pass() {
+  [ "${RH_QUIET:-}" = "1" ] && return
+  local hook="$1" msg="$2"
+  local line="  ✅ ${hook} — ${msg}"
+  printf '  ┌── 🥊 %s┐\n' "$(printf '─%.0s' $(seq 1 $((_RH_W - 4))))" >&2
+  printf '  │%s%s│\n' "$line" "$(_rh_pad "$line")" >&2
+  printf '  └%s┘\n' "$(printf '─%.0s' $(seq 1 $((_RH_W + 2))))" >&2
+}
+
+rh_block_start() {
+  local hook="$1" msg="$2"
+  local header="  🚨 RIGHT HOOKS"
+  printf '  ╔%s╗\n' "$(printf '═%.0s' $(seq 1 $((_RH_W + 2))))" >&2
+  printf '  ║%s%s║\n' "$header" "$(_rh_pad "$header")" >&2
+  printf '  ╠%s╣\n' "$(printf '═%.0s' $(seq 1 $((_RH_W + 2))))" >&2
+  local line="  🚫 ${hook} — ${msg}"
+  printf '  ║%s%s║\n' "$line" "$(_rh_pad "$line")" >&2
+  printf '  ╠%s╣\n' "$(printf '═%.0s' $(seq 1 $((_RH_W + 2))))" >&2
+}
+
+rh_block_item() {
+  local line="  $1"
+  printf '  ║%s%s║\n' "$line" "$(_rh_pad "$line")" >&2
+}
+
+rh_block_end() {
+  local hint="${1:-}"
+  if [ -n "$hint" ]; then
+    printf '  ╠%s╣\n' "$(printf '═%.0s' $(seq 1 $((_RH_W + 2))))" >&2
+    local line="  $hint"
+    printf '  ║%s%s║\n' "$line" "$(_rh_pad "$line")" >&2
+  fi
+  printf '  ╚%s╝\n' "$(printf '═%.0s' $(seq 1 $((_RH_W + 2))))" >&2
+}
+
+# Legacy rh_block — simple one-liner for hooks that don't use the incremental API
 rh_block() {
-  printf '🥊 %-18s → ✗ %s\n' "$1" "$2" >&2
+  printf '🚨🥊 %-16s → 🚫 %s\n' "$1" "$2" >&2
 }
 
 rh_info() {
