@@ -66,7 +66,7 @@ npx right-hooks upgrade         # Upgrade generated hooks (preserves custom)
 
 ## Opinions
 
-Right Hooks is opinionated. These are the hills we die on ⛰️:
+🥊 Right Hooks is opinionated. These are the hills we die on ⛰️:
 
 📝 **Doc-First** — Design docs and exec plans exist before code. On `feat/` branches, `pre-pr-create` blocks PR creation without them.
 
