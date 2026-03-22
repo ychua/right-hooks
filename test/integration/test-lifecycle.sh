@@ -25,6 +25,8 @@ export PATH="$TEST_TMPDIR/bin:$PATH"
 
 cd "$TEST_TMPDIR"
 git init -q
+git config user.email "test@test.com"
+git config user.name "Test"
 git commit --allow-empty -m "init" -q
 echo '{}' > tsconfig.json
 RH_TEST=1 node "$BIN" init --yes >/dev/null 2>&1
