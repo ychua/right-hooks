@@ -1,5 +1,22 @@
 # Right Hooks — Developer Guide
 
+## Rules for AI Agents
+
+**NEVER run `right-hooks override`.** Overrides are reserved for humans only.
+The `block-agent-override` hook mechanically enforces this, but the rule is
+also behavioral: if a gate blocks you, fix the underlying issue — don't try
+to bypass enforcement. If you're stuck, ask the human to override.
+
+**NEVER modify `.claude/settings.json` hooks.** The `config-change` hook blocks
+this, but don't attempt workarounds. The hook configuration is the enforcement
+contract.
+
+**Always sync source hooks to `.right-hooks/hooks/`** after modifying files in
+`hooks/`. The installed copies in `.right-hooks/hooks/` are what actually run.
+
+**Always run all tests locally before pushing.** The husky pre-push hook enforces
+this, but don't bypass with `HUSKY=0`. If tests fail, fix them.
+
 ## Architecture
 
 Three-layer enforcement system for AI coding agents:
@@ -56,7 +73,8 @@ Tests run with `RH_TEST=1` which skips dependency/auth/integrity checks in the p
 5. Check gates from the matched profile, verify conditions, exit 0 or 2
 
 Key helpers in `_preamble.sh`:
-- `rh_gate_value <branch_type> <gate>` — get gate value from matched profile
+- `rh_match_profile <branch_type>` — find most-specific profile, sets `RH_MATCHED_PROFILE`
+- `rh_gate_value <gate>` — get gate value from previously matched profile
 - `rh_branch()` / `rh_branch_type()` / `rh_pr_number()` — git helpers
 - `rh_has_override <gate> <pr_num>` — check for override file
 - `rh_review_pattern()` / `rh_qa_pattern()` — signature patterns

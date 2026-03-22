@@ -1,5 +1,9 @@
 # 🥊 Right Hooks
 
+[![CI](https://github.com/ychua/right-hooks/actions/workflows/test.yml/badge.svg)](https://github.com/ychua/right-hooks/actions/workflows/test.yml)
+[![npm version](https://img.shields.io/npm/v/right-hooks.svg)](https://www.npmjs.com/package/right-hooks)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 **Write hooks when agents cut corners. ✍️**
 
 > Mechanical enforcement of code quality for AI coding agents — not through prompts (agents ignore those), but through exit codes (agents can't bypass those).
