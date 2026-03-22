@@ -124,7 +124,7 @@ Why husky? Because Claude Code hooks only fire inside Claude Code sessions. If s
 
 ### 📋 Behavioral Enforcement (rules + conventions)
 
-Not everything can be mechanically enforced. These rules guide agent behavior through `.claude/rules/`. All prefixed with `rh-` to separate from your own rules.
+Not everything can be mechanically enforced. Rules guide agent behavior through `.claude/rules/`, prefixed with `rh-` to separate from your own rules.
 
 | Rule | What it covers |
 |------|---------------|
@@ -132,6 +132,28 @@ Not everything can be mechanically enforced. These rules guide agent behavior th
 | **rh-git-workflow** | Branch naming, enforcement matrix (GH/CH/B types) |
 | **rh-design-docs** | Design doc requirements: alternatives, rationale, reversibility |
 | **rh-testing** | TDD discipline: stubs → red-green → refactor |
+
+### 📊 Enforcement Method
+
+How each check is enforced. **GH** = Git Hook, **CH** = Claude Code Hook, **B** = Behavioral.
+
+| Check | Method | Hook / Source |
+|---|---|---|
+| Push protection | GH + CH | `husky/pre-push` + `pre-push-master.sh` |
+| Branch naming | GH | `husky/pre-push` |
+| CI green | CH | `pre-merge.sh` |
+| DoD complete | CH | `pre-merge.sh` |
+| Doc consistency | CH | `pre-merge.sh` |
+| Planning artifacts | CH | `pre-pr-create.sh` |
+| Review comment | CH | `pre-merge.sh` + `stop-check.sh` |
+| QA comment | CH | `pre-merge.sh` + `stop-check.sh` |
+| Learnings + Rules to Extract | CH | `pre-merge.sh` + `husky/post-merge` |
+| Post-edit validation | CH | `post-edit-check.sh` |
+| Subagent output | CH | `subagent-stop-check.sh` |
+| Override protection | CH | `block-agent-override.sh` |
+| Config tamper | CH | `config-change` |
+| TDD discipline | B | `rh-testing.md` |
+| Design doc quality | B | `rh-design-docs.md` |
 
 ---
 
