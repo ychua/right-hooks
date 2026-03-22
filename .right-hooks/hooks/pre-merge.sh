@@ -24,9 +24,11 @@ fi
 # Determine active profile gates — ALL gates loaded from matched profile
 BRANCH_TYPE=$(rh_branch_type)
 
-REQUIRE_CI=$(rh_gate_value "$BRANCH_TYPE" "ci")
+# Hard-enforced gates — always run regardless of profile
+REQUIRE_CI=true
+REQUIRE_DOC_CONSISTENCY=true
+# Profile-dependent gates
 REQUIRE_DOD=$(rh_gate_value "$BRANCH_TYPE" "dod")
-REQUIRE_DOC_CONSISTENCY=$(rh_gate_value "$BRANCH_TYPE" "docConsistency")
 REQUIRE_PLANNING=$(rh_gate_value "$BRANCH_TYPE" "planningArtifacts")
 REQUIRE_ENG_REVIEW=$(rh_gate_value "$BRANCH_TYPE" "engReview")
 REQUIRE_CODE_REVIEW=$(rh_gate_value "$BRANCH_TYPE" "codeReview")
@@ -48,14 +50,10 @@ if [ -n "$OWNER_REPO" ]; then
   fi
 fi
 
-# ── Check 1: CI green ──
-if [ "$REQUIRE_CI" = "true" ]; then
-  if ! rh_has_override "ci" "$PR_NUM"; then
-    CI_FAILURES=$(gh pr checks "$PR_NUM" 2>/dev/null | { grep -cE "fail|pending" || true; })
-    if [ "$CI_FAILURES" -gt 0 ]; then
-      ERRORS="${ERRORS}CI: ${CI_FAILURES} check(s) failing or pending\n"
-    fi
-  fi
+# ── Check 1: CI green (HARD ENFORCEMENT — always runs, no override) ──
+CI_FAILURES=$(gh pr checks "$PR_NUM" 2>/dev/null | { grep -cE "fail|pending" || true; })
+if [ "$CI_FAILURES" -gt 0 ]; then
+  ERRORS="${ERRORS}CI: ${CI_FAILURES} check(s) failing or pending — CI must pass before merge\n"
 fi
 
 # ── Check 2: DoD items checked ──
@@ -68,15 +66,11 @@ if [ "$REQUIRE_DOD" = "true" ]; then
   fi
 fi
 
-# ── Check 3: Doc consistency ──
-if [ "$REQUIRE_DOC_CONSISTENCY" = "true" ]; then
-  if ! rh_has_override "docConsistency" "$PR_NUM"; then
-    DOC_PAT=$(rh_doc_pattern)
-    DOC_CHECK=$(echo "$RH_ALL_COMMENTS" | jq --arg pat "$DOC_PAT" '[.[] | select(.body | test($pat; "i"))] | length' 2>/dev/null || echo "0")
-    if [ "$DOC_CHECK" -eq 0 ]; then
-      ERRORS="${ERRORS}Doc consistency: No documentation review comment found\n"
-    fi
-  fi
+# ── Check 3: Doc consistency (HARD ENFORCEMENT — always runs, no override) ──
+DOC_PAT=$(rh_doc_pattern)
+DOC_CHECK=$(echo "$RH_ALL_COMMENTS" | jq --arg pat "$DOC_PAT" '[.[] | select(.body | test($pat; "i"))] | length' 2>/dev/null || echo "0")
+if [ "$DOC_CHECK" -eq 0 ]; then
+  ERRORS="${ERRORS}Doc consistency: No documentation review comment found — required for all branches\n"
 fi
 
 # ── Check 4: Planning artifacts (feat/ only) ──
