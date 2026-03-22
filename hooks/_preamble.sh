@@ -240,7 +240,7 @@ rh_skill_command() {
   local fallback
   fallback=$(echo "$_RH_SKILLS_JSON" | jq -r --arg g "$gate" '.[$g].fallback // empty' 2>/dev/null)
   if [ -n "$fallback" ]; then
-    echo "$fallback" | sed "s/\${PR_NUM}/${pr_num}/g"
+    echo "${fallback//\$\{PR_NUM\}/$pr_num}"
     return
   fi
 
@@ -248,7 +248,7 @@ rh_skill_command() {
   case "$gate" in
     codeReview)
       if rh_has_gstack; then echo "Run /review"; return; fi
-      if rh_has_superpowers; then echo "Use superpowers:requesting-code-review"; return; fi
+      if rh_has_superpowers; then echo "Run superpowers:requesting-code-review"; return; fi
       ;;
     qa)
       if rh_has_gstack; then echo "Run /qa"; return; fi
