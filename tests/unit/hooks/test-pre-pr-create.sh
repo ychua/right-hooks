@@ -78,8 +78,14 @@ mkdir -p docs/designs docs/exec-plans
 echo "# Design" > docs/designs/main-test.md
 printf '# Exec Plan\n\n## Definition of Done\n- [ ] works\n' > docs/exec-plans/main-test.md
 git add . && git commit -q -m "add planning docs"
+# Capture diagnostics for CI debugging
+DIAG="pwd=$(pwd) toplevel=$(git rev-parse --show-toplevel 2>&1) branches=$(git branch -a 2>&1 | tr '\n' ',') diff=$(git diff --name-only main...HEAD 2>&1 | tr '\n' ',')"
 run_hook "$HOOK" '{"tool_input":{"command":"gh pr create --title test"}}'
-assert_exit_code 0 "$LAST_EXIT"
+if [ "$LAST_EXIT" -eq 0 ]; then
+  pass
+else
+  fail "exit=$LAST_EXIT $DIAG"
+fi
 rm -rf "$REPO_DIR"
 
 # --- Test 8: Blocks feat/ on main-based repo without docs ---
