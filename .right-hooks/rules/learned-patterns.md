@@ -3,3 +3,10 @@
 > Auto-extracted from PR learnings by the post-merge hook.
 > Do not edit manually — new rules are appended automatically.
 
+- Always pipe `gh api --paginate` through `jq -s 'add // []'` to flatten page arrays into one
+- Always pipe `gh pr diff --name-only` through `sort -u` to deduplicate multi-commit output
+- Always use `{ grep -c PATTERN || true; }` instead of `grep -c PATTERN || echo "0"` — grep -c already outputs the count, the fallback doubles it
+- CI and doc consistency should be hard-enforced gates (no profile override, no escape hatch)
+- Copy source hooks to .right-hooks/hooks/ after modifying — the installed copies are what actually run
+- Don't build abstractions (VCS layer) without a second implementation to validate against — defer until needed
+- When dogfooding hooks, run them against a real PR early — unit tests with RH_TEST=1 skip the codepaths that matter most
