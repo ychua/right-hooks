@@ -57,7 +57,13 @@ function set_up() {
   git checkout -q master 2>/dev/null || true
 }
 
-# --- Test 1: session-start injects branch context ---
+# ══════════════════════════════════════════════════════════════
+# Test 1: Session Start
+# ══════════════════════════════════════════════════════════════
+# WHAT: session-start.sh hook fires at Claude Code session begin
+# VERIFY: stdout JSON contains current branch name for context injection
+# VERIFY: stderr has branded 🥊 output proving hook executed its logic
+# WHY: agent needs branch/PR/profile context to know what workflow to follow
 function test_session_start_injects_context() {
   git checkout -qb feat/test-feature-ss 2>/dev/null || git checkout -q feat/test-feature-ss
   export MOCK_PR_EXISTS=0
@@ -65,11 +71,16 @@ function test_session_start_injects_context() {
   output=$(echo '{}' | RH_TEST=1 bash .right-hooks/hooks/session-start.sh 2>/tmp/rh-test-stderr)
   stderr_out=$(cat /tmp/rh-test-stderr)
   assert_contains "feat/test-feature-ss" "$output"
-  # Verify hook actually ran (branded output)
   assert_contains "session-start" "$stderr_out"
 }
 
-# --- Test 2: pre-pr-create blocks without design doc ---
+# ══════════════════════════════════════════════════════════════
+# Test 2: PR Creation Blocked Without Planning Artifacts
+# ══════════════════════════════════════════════════════════════
+# WHAT: pre-pr-create.sh fires before `gh pr create` on feat/ branches
+# VERIFY: exit 2 (block) when no design doc or exec plan exists
+# VERIFY: stderr tells agent what's missing
+# WHY: Doc-First opinion — agents must think before coding
 function test_pre_pr_create_blocks_without_design_doc() {
   git checkout -qb feat/test-feature-prblk 2>/dev/null || git checkout -q feat/test-feature-prblk
   run_hook "pre-pr-create.sh" '{"tool_input":{"command":"gh pr create --title test"}}'
@@ -77,7 +88,14 @@ function test_pre_pr_create_blocks_without_design_doc() {
   assert_contains "design" "$(cat /tmp/rh-test-stderr)"
 }
 
-# --- Test 3: pre-pr-create passes with docs ---
+# ══════════════════════════════════════════════════════════════
+# Test 3: PR Creation Passes With Planning Artifacts
+# ══════════════════════════════════════════════════════════════
+# WHAT: same hook, but design doc + exec plan (with DoD) exist in git diff
+# VERIFY: exit 0 (allow)
+# VERIFY: stderr has branded ✓ output proving hook found the docs
+#         (not just exit 0 because it crashed or skipped)
+# WHY: proves the hook actually scanned git diff and found matching files
 function test_pre_pr_create_passes_with_docs() {
   git checkout -qb feat/test-feature-prpass 2>/dev/null || git checkout -q feat/test-feature-prpass
   mkdir -p docs/designs docs/exec-plans
@@ -86,12 +104,17 @@ function test_pre_pr_create_passes_with_docs() {
   git add -A && git commit -qm "add docs"
   run_hook "pre-pr-create.sh" '{"tool_input":{"command":"gh pr create --title test"}}'
   assert_exit_code "0"
-  # Verify hook actually found the docs (not just skipped)
   assert_contains "pre-pr-create" "$(cat /tmp/rh-test-stderr)"
   assert_contains "✓" "$(cat /tmp/rh-test-stderr)"
 }
 
-# --- Test 4: pre-merge blocks without review ---
+# ══════════════════════════════════════════════════════════════
+# Test 4: Merge Blocked Without Review Comment
+# ══════════════════════════════════════════════════════════════
+# WHAT: pre-merge.sh fires before `gh pr merge` — checks all gates
+# SETUP: PR exists (#42), strict profile, NO review/QA/learnings, CI green, DoD complete
+# VERIFY: exit 2 (block) — review gate not satisfied
+# WHY: strict profile requires code review before merge
 function test_pre_merge_blocks_without_review() {
   git checkout -qb feat/test-feature-mr1 2>/dev/null || git checkout -q feat/test-feature-mr1
   export MOCK_PR_EXISTS=1 MOCK_PR_NUMBER=42
@@ -101,7 +124,13 @@ function test_pre_merge_blocks_without_review() {
   assert_exit_code "2"
 }
 
-# --- Test 5: pre-merge blocks with review but no QA ---
+# ══════════════════════════════════════════════════════════════
+# Test 5: Merge Blocked With Review But No QA
+# ══════════════════════════════════════════════════════════════
+# WHAT: same gate check — review exists but QA and learnings missing
+# VERIFY: exit 2 (still blocked)
+# VERIFY: stderr mentions QA or learnings as the missing gate
+# WHY: strict profile requires ALL gates, not just review
 function test_pre_merge_blocks_with_review_but_no_qa() {
   git checkout -qb feat/test-feature-mr2 2>/dev/null || git checkout -q feat/test-feature-mr2
   export MOCK_PR_EXISTS=1 MOCK_PR_NUMBER=42
@@ -111,7 +140,14 @@ function test_pre_merge_blocks_with_review_but_no_qa() {
   assert_exit_code "2"
 }
 
-# --- Test 6: pre-merge passes with all gates ---
+# ══════════════════════════════════════════════════════════════
+# Test 6: Merge Passes With All Gates Satisfied
+# ══════════════════════════════════════════════════════════════
+# WHAT: all gates satisfied — review ✓, QA ✓, learnings ✓, CI green, DoD complete
+# VERIFY: exit 0 (allow merge)
+# VERIFY: stderr shows "gates passed" — proves hook ran all checks
+#         (not just exit 0 because mock parsing failed and checks were skipped)
+# WHY: the happy path must actually validate, not just skip
 function test_pre_merge_passes_with_all_gates() {
   git checkout -qb feat/test-feature-mr3 2>/dev/null || git checkout -q feat/test-feature-mr3
   export MOCK_PR_EXISTS=1 MOCK_PR_NUMBER=42
@@ -122,26 +158,38 @@ function test_pre_merge_passes_with_all_gates() {
   git add -A && git commit -qm "add learnings"
   run_hook "pre-merge.sh" '{"tool_input":{"command":"gh pr merge 42"}}'
   assert_exit_code "0"
-  # Verify hook actually checked gates (not just skipped)
   local stderr_out=$(cat /tmp/rh-test-stderr)
   assert_contains "pre-merge" "$stderr_out"
   assert_contains "gates passed" "$stderr_out"
 }
 
-# --- Test 7: stop-check allows when complete ---
+# ══════════════════════════════════════════════════════════════
+# Test 7: Stop-Check Allows Stop When Workflow Complete
+# ══════════════════════════════════════════════════════════════
+# WHAT: stop-check.sh fires when agent tries to end session on feat/ branch
+# SETUP: PR #42 exists, review + QA comments present
+# VERIFY: exit 0 (allow stop)
+# VERIFY: stderr shows "workflow complete" — proves hook checked PR comments
+#         (not just exit 0 because no PR was detected → early return)
+# WHY: stop-check must verify review/QA exist, not just skip when mock fails
 function test_stop_check_allows_when_complete() {
   git checkout -qb feat/test-feature-sc 2>/dev/null || git checkout -q feat/test-feature-sc
   export MOCK_PR_EXISTS=1 MOCK_PR_NUMBER=42
   export MOCK_HAS_REVIEW=1 MOCK_HAS_QA=1
   run_hook "stop-check.sh" '{}'
   assert_exit_code "0"
-  # Verify hook actually checked and passed (not just early-returned)
   local stderr_out=$(cat /tmp/rh-test-stderr)
   assert_contains "stop-check" "$stderr_out"
   assert_contains "workflow complete" "$stderr_out"
 }
 
-# --- Test 8: pre-push blocks main ---
+# ══════════════════════════════════════════════════════════════
+# Test 8: Pre-Push Blocks Direct Push to Main
+# ══════════════════════════════════════════════════════════════
+# WHAT: pre-push-master.sh fires before `git push` — checks branch name
+# VERIFY: exit 2 (block) when on main branch
+# VERIFY: stderr has branded block message with "blocked"
+# WHY: all changes must go through PRs — this is enforced by husky (GH) + Claude Code hook (CH)
 function test_pre_push_blocks_main() {
   git checkout -q main
   run_hook "pre-push-master.sh" '{"tool_input":{"command":"git push origin main"}}'
@@ -150,7 +198,14 @@ function test_pre_push_blocks_main() {
   assert_contains "blocked" "$(cat /tmp/rh-test-stderr)"
 }
 
-# --- Test 9: pre-merge blocks CI failing ---
+# ══════════════════════════════════════════════════════════════
+# Test 9: Merge Blocked When CI Failing
+# ══════════════════════════════════════════════════════════════
+# WHAT: pre-merge gate — CI check
+# SETUP: PR #43 on fix/ branch, CI failing, all other gates pass
+# VERIFY: exit 2 (block)
+# VERIFY: stderr mentions "CI"
+# WHY: can't merge with red CI — mechanical enforcement
 function test_pre_merge_blocks_ci_failing() {
   git checkout -qb fix/ci-test 2>/dev/null || git checkout -q fix/ci-test
   export MOCK_PR_EXISTS=1 MOCK_PR_NUMBER=43
@@ -162,7 +217,13 @@ function test_pre_merge_blocks_ci_failing() {
   assert_contains "CI" "$(cat /tmp/rh-test-stderr)"
 }
 
-# --- Test 10: pre-merge blocks DoD incomplete ---
+# ══════════════════════════════════════════════════════════════
+# Test 10: Merge Blocked When DoD Incomplete
+# ══════════════════════════════════════════════════════════════
+# WHAT: pre-merge gate — DoD (Definition of Done) check
+# SETUP: PR #44, all gates pass except DoD has unchecked `- [ ]` items
+# VERIFY: exit 2 (block)
+# WHY: PR body checkboxes must all be checked before merge
 function test_pre_merge_blocks_dod_incomplete() {
   git checkout -qb fix/dod-test 2>/dev/null || git checkout -q fix/dod-test
   export MOCK_PR_EXISTS=1 MOCK_PR_NUMBER=44
@@ -172,7 +233,15 @@ function test_pre_merge_blocks_dod_incomplete() {
   assert_exit_code "2"
 }
 
-# --- Test 11: light profile skips review ---
+# ══════════════════════════════════════════════════════════════
+# Test 11: Light Profile Skips Review/QA Gates
+# ══════════════════════════════════════════════════════════════
+# WHAT: pre-merge with light profile on docs/ branch
+# SETUP: PR #45, NO review/QA/learnings — but light profile doesn't require them
+# VERIFY: exit 0 (allow)
+# VERIFY: stderr shows "gates passed" — proves hook loaded light profile
+#         and ran the reduced gate set (not just exit 0 from early return)
+# WHY: light profile only checks CI + DoD + doc consistency
 function test_light_profile_skips_review() {
   node "$PROJECT_DIR/bin/right-hooks.js" profile light >/dev/null 2>&1
   git checkout -qb docs/readme-update 2>/dev/null || git checkout -q docs/readme-update
@@ -185,12 +254,18 @@ function test_light_profile_skips_review() {
   # Restore strict profile for subsequent tests
   node "$PROJECT_DIR/bin/right-hooks.js" profile strict >/dev/null 2>&1
   assert_exit_code "0"
-  # Verify hook ran with light profile (not just skipped)
   assert_contains "pre-merge" "$stderr_out"
   assert_contains "gates passed" "$stderr_out"
 }
 
-# --- Test 12: agent cannot self-override ---
+# ══════════════════════════════════════════════════════════════
+# Test 12: Agent Cannot Self-Override
+# ══════════════════════════════════════════════════════════════
+# WHAT: block-agent-override.sh fires before any command containing "right-hooks override"
+# VERIFY: exit 2 (block) — agent can't call override on itself
+# VERIFY: stderr says "only humans can override gates"
+# WHY: override is an escape hatch for humans only — if agents could self-override,
+#      the entire enforcement system would be meaningless
 function test_agent_cannot_self_override() {
   run_hook "block-agent-override.sh" '{"tool_input":{"command":"npx right-hooks override --gate=qa --reason=skip"}}'
   assert_exit_code "2"
