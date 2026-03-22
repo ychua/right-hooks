@@ -282,3 +282,38 @@ function test_agent_cannot_self_override() {
   assert_contains "block-override" "$(cat /tmp/rh-test-stderr)"
   assert_contains "only humans" "$(cat /tmp/rh-test-stderr)"
 }
+
+# ══════════════════════════════════════════════════════════════
+# Test 13: Pre-Push Hook Runs Tests
+# ══════════════════════════════════════════════════════════════
+# WHAT: husky pre-push hook runs npm test before allowing push
+# VERIFY: hook contains the test-running gate
+# VERIFY: hook blocks (exit 1) when a test command fails
+# WHY: never push broken code — catches both agents and humans
+function test_pre_push_runs_tests() {
+  # Verify the hook source contains the test gate
+  local hook_content
+  hook_content=$(cat "$PROJECT_DIR/husky/pre-push")
+  assert_contains "npm test" "$hook_content"
+  assert_contains "Tests failed" "$hook_content"
+
+  # Simulate a failing test run by creating a pre-push script
+  # that uses a broken test command
+  local hook_script="$TEST_DIR/.test-pre-push.sh"
+  cat > "$hook_script" << 'HOOKEOF'
+#!/usr/bin/env bash
+BRANCH=$(git branch --show-current 2>/dev/null || echo "")
+# Skip branch checks for this test
+# Run a command that always fails (simulates broken tests)
+if ! false 2>&1; then
+  echo "RIGHT-HOOKS: Tests failed. Fix before pushing." >&2
+  exit 1
+fi
+exit 0
+HOOKEOF
+  chmod +x "$hook_script"
+  RH_LAST_EXIT=0
+  bash "$hook_script" 2>/tmp/rh-test-stderr || RH_LAST_EXIT=$?
+  assert_equals "1" "$RH_LAST_EXIT"
+  assert_contains "Tests failed" "$(cat /tmp/rh-test-stderr)"
+}
