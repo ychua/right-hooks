@@ -27,6 +27,12 @@ for test_file in "$SCRIPT_DIR"/hooks/test-*.sh "$SCRIPT_DIR"/cli/test-*.sh "$SCR
   # Run test in subshell to isolate failures
   output=$(bash "$test_file" 2>&1) || true
   
+  # Debug: show full output if no assertions found
+  if ! echo "$output" | grep -qE '(✓|✗)'; then
+    echo "  [DEBUG] No test output — full stderr/stdout:"
+    echo "$output" | head -20 | sed 's/^/    /'
+  fi
+  
   # Print test lines (indented with ✓ or ✗)
   echo "$output" | grep -E '(✓|✗|→)' || true
   
