@@ -49,22 +49,21 @@ run_hook "$HOOK" '{"tool_input":{"command":"git status"}}'
 assert_exit_code 0 "$LAST_EXIT"
 
 # Test 7: Works with 'main' as default branch (regression for master→main bug)
-# Note: Uses GIT_DIR/GIT_WORK_TREE to isolate from CI's checkout repo
+# Uses GIT_CEILING_DIRECTORIES to prevent git from finding CI's parent .git
 describe "detects design doc with main as default branch"
 MAIN_REPO="$TEST_TMPDIR/main-repo"
 rm -rf "$MAIN_REPO"
 mkdir -p "$MAIN_REPO" && cd "$MAIN_REPO"
-git init -q
-git commit --allow-empty -m "init" -q
-git branch -M main
-git checkout -q -b feat/main-test
+GIT_CEILING_DIRECTORIES="$TEST_TMPDIR" git init -q
+GIT_CEILING_DIRECTORIES="$TEST_TMPDIR" git commit --allow-empty -m "init" -q
+GIT_CEILING_DIRECTORIES="$TEST_TMPDIR" git branch -M main
+GIT_CEILING_DIRECTORIES="$TEST_TMPDIR" git checkout -q -b feat/main-test
 mkdir -p docs/designs docs/exec-plans
 echo "# Design" > docs/designs/main-test.md
 printf '# Exec Plan\n\n## Definition of Done\n- [ ] works\n' > docs/exec-plans/main-test.md
-git add . && git commit -q -m "add planning docs"
-# Run hook with explicit GIT_DIR to prevent git from traversing to parent repo
+GIT_CEILING_DIRECTORIES="$TEST_TMPDIR" git add . && GIT_CEILING_DIRECTORIES="$TEST_TMPDIR" git commit -q -m "add planning docs"
 echo '{"tool_input":{"command":"gh pr create --title test"}}' | \
-  GIT_DIR="$MAIN_REPO/.git" GIT_WORK_TREE="$MAIN_REPO" RH_TEST=1 bash "$HOOK" >/dev/null 2>"$TEST_TMPDIR/stderr7"
+  GIT_CEILING_DIRECTORIES="$TEST_TMPDIR" RH_TEST=1 bash "$HOOK" >/dev/null 2>"$TEST_TMPDIR/stderr7"
 TEST7_EXIT=$?
 if [ "$TEST7_EXIT" -eq 0 ]; then
   pass
@@ -75,12 +74,12 @@ fi
 # Test 8: Blocks on main branch without docs (same as master test but with main)
 describe "blocks feat/ on main-based repo without design doc"
 cd "$MAIN_REPO"
-git checkout -q main
-git checkout -q -b feat/no-docs
+GIT_CEILING_DIRECTORIES="$TEST_TMPDIR" git checkout -q main
+GIT_CEILING_DIRECTORIES="$TEST_TMPDIR" git checkout -q -b feat/no-docs
 echo "code" > code.js
-git add . && git commit -q -m "code without docs"
+GIT_CEILING_DIRECTORIES="$TEST_TMPDIR" git add . && GIT_CEILING_DIRECTORIES="$TEST_TMPDIR" git commit -q -m "code without docs"
 echo '{"tool_input":{"command":"gh pr create --title test"}}' | \
-  GIT_DIR="$MAIN_REPO/.git" GIT_WORK_TREE="$MAIN_REPO" RH_TEST=1 bash "$HOOK" >/dev/null 2>&1
+  GIT_CEILING_DIRECTORIES="$TEST_TMPDIR" RH_TEST=1 bash "$HOOK" >/dev/null 2>&1
 assert_exit_code 2 $?
 
 print_summary
