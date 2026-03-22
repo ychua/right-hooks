@@ -256,7 +256,13 @@ npx right-hooks upgrade
 
 ## Dogfooding
 
-Right Hooks uses Right Hooks. The `.right-hooks/` directory in this repo is our own installation — we develop this project using the same enforcement we ship to you.
+Right Hooks uses Right Hooks. Every enforcement directory in this repo is our own dogfood:
+
+- **`.right-hooks/`** — Config, hooks, rules, profiles, templates (strict profile)
+- **`.husky/`** — Git hooks (pre-push blocks direct push to main, post-merge extracts learnings)
+- **`.claude/`** — Claude Code settings + `rh-` rule symlinks
+
+We develop this project under the same enforcement we ship to you.
 
 ## When Hooks Block You
 
