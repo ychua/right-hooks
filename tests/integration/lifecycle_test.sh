@@ -164,7 +164,7 @@ function test_pre_merge_passes_with_all_gates() {
   # Create learnings file matching mock's gh pr diff output filename
   # Headers must match signatures.json learningsHeader values
   mkdir -p docs/retros
-  printf "# Learnings\n## Review Agent\n- reviewed\n## QA Agent\n- tested\n### Rules to Extract\n- always test\n" > docs/retros/test-feature-learnings.md
+  printf "# Learnings\n## Review\n- reviewed\n## QA\n- tested\n### Rules to Extract\n- always test\n" > docs/retros/test-feature-learnings.md
   git add -A && git commit -qm "add learnings"
   run_hook "pre-merge.sh" '{"tool_input":{"command":"gh pr merge 42"}}'
   assert_equals "0" "$RH_LAST_EXIT"

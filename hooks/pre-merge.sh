@@ -156,12 +156,13 @@ if [ "$REQUIRE_LEARNINGS" = "true" ]; then
       # Check for per-agent sections with substance
       LEARNINGS_FILE=$(gh pr diff "$PR_NUM" --name-only 2>/dev/null | sort -u | grep -E 'docs/retros/.*-learnings\.md$' | head -1)
       if [ -n "$LEARNINGS_FILE" ] && [ -f "$LEARNINGS_FILE" ]; then
-        REVIEW_HEADER=$(rh_review_learnings_header)
-        QA_HEADER=$(rh_qa_learnings_header)
-        HAS_REVIEW_SECTION=$(grep -cF "$REVIEW_HEADER" "$LEARNINGS_FILE" 2>/dev/null || true)
-        HAS_QA_SECTION=$(grep -cF "$QA_HEADER" "$LEARNINGS_FILE" 2>/dev/null || true)
+        # Match learnings sections leniently — "## Review" matches "## Review Agent",
+        # "## Review", "## Code Review", etc. Avoids forcing authors to know exact
+        # signature patterns.
+        HAS_REVIEW_SECTION=$(grep -ciE '^## .*review' "$LEARNINGS_FILE" 2>/dev/null || true)
+        HAS_QA_SECTION=$(grep -ciE '^## .*(qa|test)' "$LEARNINGS_FILE" 2>/dev/null || true)
         if [ "$HAS_REVIEW_SECTION" -eq 0 ] || [ "$HAS_QA_SECTION" -eq 0 ]; then
-          ERRORS="${ERRORS}Learnings: Missing agent sections (need ${REVIEW_HEADER} and ${QA_HEADER})\n"
+          ERRORS="${ERRORS}Learnings: Missing agent sections (need a ## ...Review and ## ...QA/Test section)\n"
         fi
         # Check for "Rules to Extract" section — at least one actionable rule
         RULES_SECTIONS=$(grep -c '### Rules to Extract' "$LEARNINGS_FILE" 2>/dev/null || true)
