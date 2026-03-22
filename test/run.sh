@@ -18,7 +18,7 @@ echo "════════════════════════�
 echo ""
 
 # Find and run all test scripts
-for test_file in "$SCRIPT_DIR"/hooks/test-*.sh "$SCRIPT_DIR"/cli/test-*.sh; do
+for test_file in "$SCRIPT_DIR"/hooks/test-*.sh "$SCRIPT_DIR"/cli/test-*.sh "$SCRIPT_DIR"/integration/test-*.sh; do
   [ -f "$test_file" ] || continue
   
   suite_name=$(basename "$test_file" .sh | sed 's/^test-//')
