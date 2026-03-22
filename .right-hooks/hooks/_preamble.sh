@@ -32,8 +32,9 @@ else
     if [ -n "$EXPECTED" ]; then
       ACTUAL=$(rh_sha256 "$RH_HOOK_SELF" 2>/dev/null)
       if [ -n "$ACTUAL" ] && [ "$ACTUAL" != "$EXPECTED" ]; then
-        echo "RIGHT-HOOKS: Hook $(basename "$RH_HOOK_SELF") was modified. Run 'npx right-hooks doctor' to fix." >&2
-        # Degrade, don't block — might be a legitimate customization
+        # Debug-level only — user customizations are legitimate and expected.
+        # The upgrade command uses checksums to detect modifications; no need to warn on every run.
+        [ "${RH_DEBUG:-}" = "1" ] && echo "RIGHT-HOOKS: Hook $(basename "$RH_HOOK_SELF") checksum differs (customized or updated)" >&2
       fi
     fi
   fi
