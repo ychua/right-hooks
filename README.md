@@ -85,13 +85,11 @@ npx right-hooks upgrade         # Upgrade generated hooks (preserves custom)
 
 ## Opinions
 
-Right Hooks is opinionated. These are the hills we die on:
-
-🧪 **Test-First** — Tests are written before implementation. The test suite IS the spec.
-
-📝 **Doc-First** — Design docs capture WHY. Exec plans capture HOW. Both exist before code.
+Right Hooks is opinionated about one thing: **agents must leave a trail.**
 
 📚 **Learnings-First** — Every PR produces a learnings document with a `### Rules to Extract` section. Post-merge, those rules are **automatically extracted** into `.right-hooks/rules/learned-patterns.md` — a file that accumulates over time, making the system smarter with every PR. The point isn't to document what went right. The point is to document what went wrong so future agents don't repeat it.
+
+This is the only opinion with full mechanical enforcement — `pre-merge` verifies the learnings doc exists with substantive content, and the post-merge hook auto-extracts rules. Everything else (TDD, design docs, review depth) is configurable through profiles and optional rules.
 
 ---
 
@@ -126,12 +124,17 @@ Why husky? Because Claude Code hooks only fire inside Claude Code sessions. If s
 
 Not everything can be mechanically enforced. These rules guide agent behavior through `.claude/rules/`:
 
-| Rule | What it covers |
-|------|---------------|
-| **development-lifecycle** | Full workflow: planning → TDD → review/QA → learnings → merge |
-| **testing** | TDD discipline: stubs → red-green → refactor |
-| **design-docs** | Design doc requirements: alternatives, rationale, reversibility |
-| **git-workflow** | Branch naming, enforcement by branch type, secret management |
+| Rule | What it covers | Auto-loaded? |
+|------|---------------|-------------|
+| **development-lifecycle** | Full workflow: planning → build → review/QA → learnings → merge | ✅ Yes |
+| **git-workflow** | Branch naming (GH/CH/B enforcement matrix) | ✅ Yes |
+| **testing** | TDD discipline: stubs → red-green → refactor | Optional |
+| **design-docs** | Design doc requirements: alternatives, rationale, reversibility | Optional |
+
+Optional rules live in `.right-hooks/optional-rules/`. To enable, symlink into `.claude/rules/`:
+```bash
+ln -s ../../.right-hooks/optional-rules/testing.md .claude/rules/testing.md
+```
 
 ---
 
