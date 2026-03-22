@@ -186,6 +186,10 @@ function test_stop_check_allows_when_complete() {
   git checkout -qb feat/test-feature-sc 2>/dev/null || git checkout -q feat/test-feature-sc
   export MOCK_PR_EXISTS=1 MOCK_PR_NUMBER=42
   export MOCK_HAS_REVIEW=1 MOCK_HAS_QA=1 MOCK_HAS_LEARNINGS=1
+  # Create sentinel files to prove subagents posted the comments
+  mkdir -p .right-hooks
+  echo "12345" > .right-hooks/.review-comment-id
+  echo "12346" > .right-hooks/.qa-comment-id
   run_hook "stop-check.sh" '{}'
   assert_equals "0" "$RH_LAST_EXIT"
   local stderr_out=$(cat /tmp/rh-test-stderr)

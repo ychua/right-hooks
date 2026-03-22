@@ -63,6 +63,13 @@ case "$1" in
     esac
     ;;
   api)
+    # Individual comment lookup (sentinel verification): /issues/comments/{id}
+    if echo "$*" | grep -qE 'comments/[0-9]+'; then
+      COMMENT_ID=$(echo "$*" | grep -oE 'comments/[0-9]+' | grep -oE '[0-9]+')
+      printf '{"id":%s}' "$COMMENT_ID"
+      exit 0
+    fi
+    # List all comments on a PR
     if echo "$*" | grep -q "comments"; then
       COMMENTS="[]"
       # Build comment array as valid JSON — use printf to avoid \n issues

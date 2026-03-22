@@ -47,27 +47,56 @@ if [ -d ".claude/skills/superpowers/" ] || [ -d "$HOME/.claude/skills/superpower
   HAS_SUPERPOWERS=true
 fi
 
-# Check: Review agent comments exist
-REVIEW_PAT=$(rh_review_pattern)
-REVIEW=$(echo "$RH_ALL_COMMENTS" | jq --arg pat "$REVIEW_PAT" '[.[] | select(.body | test($pat; "i"))] | length' 2>/dev/null || echo "0")
-if [ "$REVIEW" -eq 0 ]; then
-  if [ "$HAS_GSTACK" = "true" ]; then
-    BLOCKERS="${BLOCKERS}• No review comment found. Run /review to create a code review\n\n"
-  elif [ "$HAS_SUPERPOWERS" = "true" ]; then
-    BLOCKERS="${BLOCKERS}• No review comment found. Use superpowers:requesting-code-review to dispatch a code reviewer\n\n"
+# Check: Review comment exists AND was posted by a real subagent (sentinel protocol)
+# Sentinel files prove a subagent actually ran and posted — prevents the orchestrating
+# agent from faking review/QA comments by posting them directly.
+REVIEW_SENTINEL=".right-hooks/.review-comment-id"
+REVIEW_VERIFIED=false
+if [ -f "$REVIEW_SENTINEL" ] && [ -n "$OWNER_REPO" ]; then
+  REVIEW_CID=$(cat "$REVIEW_SENTINEL")
+  REVIEW_EXISTS=$(gh api "repos/${OWNER_REPO}/issues/comments/${REVIEW_CID}" --jq '.id' 2>/dev/null || echo "")
+  [ -n "$REVIEW_EXISTS" ] && REVIEW_VERIFIED=true
+fi
+if [ "$REVIEW_VERIFIED" != "true" ]; then
+  # Fallback: check comment pattern (weaker, can be faked by orchestrator)
+  REVIEW_PAT=$(rh_review_pattern)
+  REVIEW=$(echo "$RH_ALL_COMMENTS" | jq --arg pat "$REVIEW_PAT" '[.[] | select(.body | test($pat; "i"))] | length' 2>/dev/null || echo "0")
+  if [ "$REVIEW" -eq 0 ]; then
+    if [ "$HAS_GSTACK" = "true" ]; then
+      BLOCKERS="${BLOCKERS}• No review comment found. Run /review to create a code review\n\n"
+    elif [ "$HAS_SUPERPOWERS" = "true" ]; then
+      BLOCKERS="${BLOCKERS}• No review comment found. Use superpowers:requesting-code-review\n\n"
+    else
+      BLOCKERS="${BLOCKERS}• No review comment found. Post a code review comment on PR #${PR_NUM}\n\n"
+    fi
   else
-    BLOCKERS="${BLOCKERS}• No review comment found. Post a code review comment on PR #${PR_NUM}\n\n"
+    BLOCKERS="${BLOCKERS}• Review comment exists but no sentinel file (.right-hooks/.review-comment-id)\n"
+    BLOCKERS="${BLOCKERS}  → This means the comment may not have been posted by a real review subagent\n"
+    BLOCKERS="${BLOCKERS}  → Dispatch a real reviewer: subagents must write comment ID to the sentinel file\n\n"
   fi
 fi
 
-# Check: QA agent comments exist
-QA_PAT=$(rh_qa_pattern)
-QA=$(echo "$RH_ALL_COMMENTS" | jq --arg pat "$QA_PAT" '[.[] | select(.body | test($pat; "i"))] | length' 2>/dev/null || echo "0")
-if [ "$QA" -eq 0 ]; then
-  if [ "$HAS_GSTACK" = "true" ]; then
-    BLOCKERS="${BLOCKERS}• No QA comment found. Run /qa to run QA\n\n"
+# Check: QA comment exists AND was posted by a real subagent
+QA_SENTINEL=".right-hooks/.qa-comment-id"
+QA_VERIFIED=false
+if [ -f "$QA_SENTINEL" ] && [ -n "$OWNER_REPO" ]; then
+  QA_CID=$(cat "$QA_SENTINEL")
+  QA_EXISTS=$(gh api "repos/${OWNER_REPO}/issues/comments/${QA_CID}" --jq '.id' 2>/dev/null || echo "")
+  [ -n "$QA_EXISTS" ] && QA_VERIFIED=true
+fi
+if [ "$QA_VERIFIED" != "true" ]; then
+  QA_PAT=$(rh_qa_pattern)
+  QA=$(echo "$RH_ALL_COMMENTS" | jq --arg pat "$QA_PAT" '[.[] | select(.body | test($pat; "i"))] | length' 2>/dev/null || echo "0")
+  if [ "$QA" -eq 0 ]; then
+    if [ "$HAS_GSTACK" = "true" ]; then
+      BLOCKERS="${BLOCKERS}• No QA comment found. Run /qa to run QA\n\n"
+    else
+      BLOCKERS="${BLOCKERS}• No QA comment found. Post a QA comment on PR #${PR_NUM}\n\n"
+    fi
   else
-    BLOCKERS="${BLOCKERS}• No QA comment found. Post a QA comment on PR #${PR_NUM}\n\n"
+    BLOCKERS="${BLOCKERS}• QA comment exists but no sentinel file (.right-hooks/.qa-comment-id)\n"
+    BLOCKERS="${BLOCKERS}  → This means the comment may not have been posted by a real QA subagent\n"
+    BLOCKERS="${BLOCKERS}  → Dispatch a real QA agent: subagents must write comment ID to the sentinel file\n\n"
   fi
 fi
 

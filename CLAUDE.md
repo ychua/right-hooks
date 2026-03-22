@@ -17,6 +17,18 @@ contract.
 **Always run all tests locally before pushing.** The husky pre-push hook enforces
 this, but don't bypass with `HUSKY=0`. If tests fail, fix them.
 
+**NEVER post review or QA comments directly.** Always dispatch a real subagent
+to do the review/QA work. The stop hook verifies comments via sentinel files
+(`.right-hooks/.review-comment-id`, `.right-hooks/.qa-comment-id`). Comments
+without sentinel verification will be flagged as potentially faked.
+
+Subagents must follow this protocol after posting:
+```bash
+COMMENT_URL=$(gh pr comment $PR_NUM --body "$FINDINGS" 2>&1)
+COMMENT_ID=$(echo "$COMMENT_URL" | grep -oE '[0-9]+$')
+echo "$COMMENT_ID" > .right-hooks/.review-comment-id  # or .qa-comment-id
+```
+
 ## Architecture
 
 Three-layer enforcement system for AI coding agents:

@@ -6,3 +6,8 @@ node_modules/
 *.log
 .DS_Store
 lib/
+
+# Sentinel files (transient state from subagent verification)
+.right-hooks/.review-comment-id
+.right-hooks/.qa-comment-id
+.right-hooks/.last-review-comment-id
