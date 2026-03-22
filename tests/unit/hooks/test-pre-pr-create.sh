@@ -71,9 +71,7 @@ TEST7_EXIT=$?
 if [ "$TEST7_EXIT" -eq 0 ]; then
   pass
 else
-  fail "Expected exit 0, got $TEST7_EXIT"
-  echo "    debug-git: $(cat "$TEST_TMPDIR/debug-git")"
-  echo "    stderr: $(cat "$TEST_TMPDIR/debug-stderr")"
+  fail "exit=$TEST7_EXIT git=$(cat "$TEST_TMPDIR/debug-git" | tr '\n' '|') err=$(cat "$TEST_TMPDIR/debug-stderr" | tr '\n' '|')"
 fi
 
 # Test 8: Blocks on main branch without docs (same as master test but with main)
