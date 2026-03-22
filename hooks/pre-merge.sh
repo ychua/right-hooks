@@ -82,8 +82,8 @@ fi
 # ── Check 4: Planning artifacts (feat/ only) ──
 if [ "$REQUIRE_PLANNING" = "true" ]; then
   if ! rh_has_override "planningArtifacts" "$PR_NUM"; then
-    DESIGN_DOC=$(gh pr diff "$PR_NUM" --name-only 2>/dev/null | grep -cE 'docs/designs/.*\.md$' || echo "0")
-    EXEC_PLAN=$(gh pr diff "$PR_NUM" --name-only 2>/dev/null | grep -cE 'docs/exec-plans/.*\.md$' || echo "0")
+    DESIGN_DOC=$(gh pr diff "$PR_NUM" --name-only 2>/dev/null | sort -u | grep -cE 'docs/designs/.*\.md$' || echo "0")
+    EXEC_PLAN=$(gh pr diff "$PR_NUM" --name-only 2>/dev/null | sort -u | grep -cE 'docs/exec-plans/.*\.md$' || echo "0")
     if [ "$DESIGN_DOC" -eq 0 ] || [ "$EXEC_PLAN" -eq 0 ]; then
       ERRORS="${ERRORS}Planning: Missing design doc or exec plan in PR diff\n"
     fi
@@ -154,12 +154,12 @@ fi
 # ── Check 7: Learnings ──
 if [ "$REQUIRE_LEARNINGS" = "true" ]; then
   if ! rh_has_override "learnings" "$PR_NUM"; then
-    LEARNINGS=$(gh pr diff "$PR_NUM" --name-only 2>/dev/null | grep -cE 'docs/retros/.*-learnings\.md$' || echo "0")
+    LEARNINGS=$(gh pr diff "$PR_NUM" --name-only 2>/dev/null | sort -u | grep -cE 'docs/retros/.*-learnings\.md$' || echo "0")
     if [ "$LEARNINGS" -eq 0 ]; then
       ERRORS="${ERRORS}Learnings: No learnings document in PR diff\n"
     else
       # Check for per-agent sections with substance
-      LEARNINGS_FILE=$(gh pr diff "$PR_NUM" --name-only 2>/dev/null | grep -E 'docs/retros/.*-learnings\.md$' | head -1)
+      LEARNINGS_FILE=$(gh pr diff "$PR_NUM" --name-only 2>/dev/null | sort -u | grep -E 'docs/retros/.*-learnings\.md$' | head -1)
       if [ -n "$LEARNINGS_FILE" ] && [ -f "$LEARNINGS_FILE" ]; then
         REVIEW_HEADER=$(rh_review_learnings_header)
         QA_HEADER=$(rh_qa_learnings_header)
