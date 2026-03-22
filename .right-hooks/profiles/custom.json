@@ -1,0 +1,19 @@
+{
+  "name": "custom",
+  "description": "Pick your own gates — edit this file to enable/disable individual checks",
+  "triggers": {
+    "branchPrefix": ["feat/", "fix/", "refactor/", "perf/", "test/", "ci/", "docs/", "chore/", "hotfix/"]
+  },
+  "gates": {
+    "ci": true,
+    "dod": true,
+    "docConsistency": true,
+    "planningArtifacts": true,
+    "engReview": false,
+    "codeReview": true,
+    "qa": true,
+    "learnings": true,
+    "stopHook": true,
+    "postEditCheck": true
+  }
+}

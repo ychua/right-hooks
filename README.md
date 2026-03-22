@@ -40,6 +40,9 @@ Detecting project...
 
 ? Select enforcement profile:
   ❯ Recommended (strict for feat/, standard for fix/, light for docs/)
+    Strict only (full lifecycle for everything)
+    Light (minimal enforcement)
+    Custom (toggle individual gates)
 
 ✓ Hooks installed to .right-hooks/hooks/ (9 hooks)
 ✓ Rules symlinked to .claude/rules/ (4 rule files)
@@ -171,6 +174,25 @@ How each check is enforced. **GH** = Git Hook, **CH** = Claude Code Hook, **B** 
 | **Strict** | `feat/` | All gates: CI, DoD, docs, planning, review, QA, learnings |
 | **Standard** | `fix/`, `refactor/`, `perf/`, `test/`, `ci/` | CI, DoD, docs, review, QA, learnings |
 | **Light** | `docs/`, `chore/`, `hotfix/` | CI, DoD, docs only |
+| **Custom** | All (you choose) | Toggle individual gates in `.right-hooks/active-profile.json` |
+
+Custom profile example — enable only what you want:
+```json
+{
+  "name": "custom",
+  "gates": {
+    "ci": true,
+    "dod": true,
+    "docConsistency": false,
+    "planningArtifacts": false,
+    "codeReview": true,
+    "qa": false,
+    "learnings": true,
+    "stopHook": true,
+    "postEditCheck": true
+  }
+}
+```
 
 ---
 
