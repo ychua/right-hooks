@@ -10,3 +10,6 @@
 - Copy source hooks to .right-hooks/hooks/ after modifying — the installed copies are what actually run
 - Don't build abstractions (VCS layer) without a second implementation to validate against — defer until needed
 - When dogfooding hooks, run them against a real PR early — unit tests with RH_TEST=1 skip the codepaths that matter most
+- Use charmbracelet/gum for terminal UI instead of hand-drawing ASCII boxes — cleaner code, better output
+- Always use heredoc redirect (`<<< "$(printf ...)"`) not pipe (`printf ... | while`) when the loop body modifies parent shell state
+- Optional CLI tools should be detected once in preamble and cached in a variable, not checked per-call
