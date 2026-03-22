@@ -116,6 +116,31 @@ rh_debug() {
   return 0
 }
 
+# Helper: detect gstack/superpowers availability (cached)
+_RH_HAS_GSTACK=""
+_RH_HAS_SUPERPOWERS=""
+rh_has_gstack() {
+  if [ -z "$_RH_HAS_GSTACK" ]; then
+    if [ -d ".claude/skills/gstack/" ] || [ -d "$HOME/.claude/skills/gstack/" ]; then
+      _RH_HAS_GSTACK=true
+    else
+      _RH_HAS_GSTACK=false
+    fi
+  fi
+  [ "$_RH_HAS_GSTACK" = "true" ]
+}
+
+rh_has_superpowers() {
+  if [ -z "$_RH_HAS_SUPERPOWERS" ]; then
+    if [ -d ".claude/skills/superpowers/" ] || [ -d "$HOME/.claude/skills/superpowers/" ]; then
+      _RH_HAS_SUPERPOWERS=true
+    else
+      _RH_HAS_SUPERPOWERS=false
+    fi
+  fi
+  [ "$_RH_HAS_SUPERPOWERS" = "true" ]
+}
+
 # Helper: get current branch
 rh_branch() {
   git branch --show-current 2>/dev/null || echo ""

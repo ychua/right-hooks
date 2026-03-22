@@ -71,7 +71,11 @@ fi
 DOC_PAT=$(rh_doc_pattern)
 DOC_CHECK=$(echo "$RH_ALL_COMMENTS" | jq --arg pat "$DOC_PAT" '[.[] | select(.body | test($pat; "i"))] | length' 2>/dev/null || echo "0")
 if [ "$DOC_CHECK" -eq 0 ]; then
-  ERRORS="${ERRORS}Doc consistency: No documentation review comment found — required for all branches\n"
+  if rh_has_gstack; then
+    ERRORS="${ERRORS}Doc consistency: No documentation review comment found. Run /document-release\n"
+  else
+    ERRORS="${ERRORS}Doc consistency: No documentation review comment found — required for all branches\n"
+  fi
 fi
 
 # ── Check 4: Planning artifacts (feat/ only) ──
@@ -172,6 +176,27 @@ if [ "$REQUIRE_LEARNINGS" = "true" ]; then
           RULE_LINES=$(sed -n '/### Rules to Extract/,/^---$\|^## \|^### [^R]/p' "$LEARNINGS_FILE" | { grep -c '^- ' 2>/dev/null || true; })
           if [ "$RULE_LINES" -eq 0 ]; then
             ERRORS="${ERRORS}Learnings: '### Rules to Extract' has no actionable rules (add at least one '- ...' line)\n"
+          else
+            # Extract rules into learned-patterns.md NOW (before merge)
+            # This ensures rules are captured even with squash merges via gh pr merge
+            LEARNED_PATTERNS=".right-hooks/rules/learned-patterns.md"
+            if [ -f "$LEARNED_PATTERNS" ]; then
+              RULES=$(awk '/### Rules to Extract/{found=1; next} found && /^- /{print}' "$LEARNINGS_FILE")
+              NEW_COUNT=0
+              while IFS= read -r rule; do
+                [ -z "$rule" ] && continue
+                if ! grep -qF "$rule" "$LEARNED_PATTERNS" 2>/dev/null; then
+                  echo "$rule" >> "$LEARNED_PATTERNS"
+                  NEW_COUNT=$((NEW_COUNT + 1))
+                fi
+              done <<< "$RULES"
+              if [ "$NEW_COUNT" -gt 0 ]; then
+                rh_info "pre-merge" "Extracted $NEW_COUNT new rules into learned-patterns.md"
+                # Stage and commit the updated file so it's included in the merge
+                git add "$LEARNED_PATTERNS" 2>/dev/null
+                git commit -m "chore: extract learned patterns from $(basename "$LEARNINGS_FILE")" --no-verify 2>/dev/null || true
+              fi
+            fi
           fi
         fi
       fi

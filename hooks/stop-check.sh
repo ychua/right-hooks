@@ -36,16 +36,7 @@ if [ -n "$OWNER_REPO" ]; then
   RH_ALL_COMMENTS=$(GH_HTTP_TIMEOUT=15 gh api --paginate "repos/${OWNER_REPO}/issues/${PR_NUM}/comments" 2>/dev/null | jq -s 'add // []' 2>/dev/null || echo "[]")
 fi
 
-# Detect gstack and superpowers for tool-specific instructions
-HAS_GSTACK=false
-if [ -d ".claude/skills/gstack/" ] || [ -d "$HOME/.claude/skills/gstack/" ]; then
-  HAS_GSTACK=true
-fi
-
-HAS_SUPERPOWERS=false
-if [ -d ".claude/skills/superpowers/" ] || [ -d "$HOME/.claude/skills/superpowers/" ]; then
-  HAS_SUPERPOWERS=true
-fi
+# Tool detection uses shared preamble helpers (rh_has_gstack, rh_has_superpowers)
 
 # Check: Review comment exists AND was posted by a real subagent (sentinel protocol)
 # Sentinel files prove a subagent actually ran and posted — prevents the orchestrating
@@ -62,9 +53,9 @@ if [ "$REVIEW_VERIFIED" != "true" ]; then
   REVIEW_PAT=$(rh_review_pattern)
   REVIEW=$(echo "$RH_ALL_COMMENTS" | jq --arg pat "$REVIEW_PAT" '[.[] | select(.body | test($pat; "i"))] | length' 2>/dev/null || echo "0")
   if [ "$REVIEW" -eq 0 ]; then
-    if [ "$HAS_GSTACK" = "true" ]; then
+    if rh_has_gstack; then
       BLOCKERS="${BLOCKERS}• No review comment found. Run /review to create a code review\n\n"
-    elif [ "$HAS_SUPERPOWERS" = "true" ]; then
+    elif rh_has_superpowers; then
       BLOCKERS="${BLOCKERS}• No review comment found. Use superpowers:requesting-code-review\n\n"
     else
       BLOCKERS="${BLOCKERS}• No review comment found. Post a code review comment on PR #${PR_NUM}\n\n"
@@ -88,7 +79,7 @@ if [ "$QA_VERIFIED" != "true" ]; then
   QA_PAT=$(rh_qa_pattern)
   QA=$(echo "$RH_ALL_COMMENTS" | jq --arg pat "$QA_PAT" '[.[] | select(.body | test($pat; "i"))] | length' 2>/dev/null || echo "0")
   if [ "$QA" -eq 0 ]; then
-    if [ "$HAS_GSTACK" = "true" ]; then
+    if rh_has_gstack; then
       BLOCKERS="${BLOCKERS}• No QA comment found. Run /qa to run QA\n\n"
     else
       BLOCKERS="${BLOCKERS}• No QA comment found. Post a QA comment on PR #${PR_NUM}\n\n"
@@ -112,7 +103,7 @@ if [ -n "$BLOCKERS" ]; then
   while IFS= read -r line; do
     [ -n "$line" ] && rh_block_item "$line"
   done <<< "$(printf "$BLOCKERS")"
-  if [ "$HAS_SUPERPOWERS" = "true" ]; then
+  if rh_has_superpowers; then
     rh_block_item "TIP: Use verification-before-completion"
   fi
   rh_block_end "Override: npx right-hooks override"
