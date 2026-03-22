@@ -22,3 +22,11 @@ jobs:
         run: npm test
         env:
           RH_TEST: '1'
+
+      - name: Install bashunit
+        run: curl -s https://bashunit.typeddevs.com/install.sh | bash
+
+      - name: Run integration tests
+        run: ./lib/bashunit tests/integration/
+        env:
+          RH_TEST: '1'
