@@ -7,10 +7,12 @@ const fs = require('fs');
 const VERSION = require('../package.json').version;
 const COMMANDS = {
   init: 'Initialize Right Hooks in the current project',
+  scaffold: 'Create docs directories (designs, exec-plans, retros)',
   status: 'Show active profile, preset, and gate status',
   preset: 'Switch language preset (e.g., right-hooks preset typescript)',
   profile: 'Switch enforcement profile (e.g., right-hooks profile strict)',
-  doctor: 'Diagnose hook configuration issues',
+  doctor: 'Diagnose hook configuration issues (--fix to auto-repair)',
+  diff: 'Preview what upgrade would change (read-only)',
   override: 'Override a gate with audited reason',
   overrides: 'List or clear active overrides',
   upgrade: 'Upgrade generated hooks (preserves custom hooks)',
@@ -26,11 +28,17 @@ function main() {
     case 'init':
       require('../src/init.js').run(args.slice(1));
       break;
+    case 'scaffold':
+      require('../src/scaffold.js').run(args.slice(1));
+      break;
     case 'status':
       require('../src/status.js').run(args.slice(1));
       break;
     case 'doctor':
       require('../src/doctor.js').run(args.slice(1));
+      break;
+    case 'diff':
+      require('../src/diff.js').run(args.slice(1));
       break;
     case 'override':
     case 'overrides':
@@ -108,10 +116,13 @@ Commands:`);
   console.log(`
 Examples:
   npx right-hooks init                    Initialize Right Hooks in current project
+  npx right-hooks scaffold                Create docs directories
   npx right-hooks status                  Show enforcement status
   npx right-hooks preset typescript       Switch to TypeScript preset
   npx right-hooks profile strict          Switch to strict enforcement
   npx right-hooks doctor                  Check hook health
+  npx right-hooks doctor --fix            Auto-repair common issues
+  npx right-hooks diff                    Preview what upgrade would change
   npx right-hooks override --gate=qa \\
     --reason="Manual testing done"  Override a gate
   npx right-hooks upgrade                 Upgrade to latest hooks

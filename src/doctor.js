@@ -7,10 +7,12 @@ const { execSync } = require('child_process');
 
 function run(args) {
   const rhDir = '.right-hooks';
+  const fixing = args.includes('--fix');
   let issues = 0;
   let warnings = 0;
+  let fixed = 0;
 
-  console.log('\n🥊  Right Hooks Doctor\n');
+  console.log(`\n🥊  Right Hooks Doctor${fixing ? ' (--fix mode)' : ''}\n`);
 
   // Check .right-hooks directory exists
   if (!fs.existsSync(rhDir)) {
@@ -19,13 +21,22 @@ function run(args) {
   }
   console.log('✓ .right-hooks/ directory exists');
 
+  const pkgRoot = path.resolve(__dirname, '..');
+  const pkgVersion = require(path.join(pkgRoot, 'package.json')).version;
+
   // Check version file
   const versionFile = path.join(rhDir, 'version');
   if (fs.existsSync(versionFile)) {
     console.log(`✓ Version: ${fs.readFileSync(versionFile, 'utf8').trim()}`);
   } else {
-    console.log('⚠ Missing version file');
-    warnings++;
+    if (fixing) {
+      fs.writeFileSync(versionFile, pkgVersion);
+      console.log(`🔧 Created version file (${pkgVersion})`);
+      fixed++;
+    } else {
+      console.log('⚠ Missing version file');
+      warnings++;
+    }
   }
 
   // Check active preset
@@ -51,21 +62,47 @@ function run(args) {
     'judge.sh', 'session-start.sh',
   ];
 
+  const pkgHooksDir = path.join(pkgRoot, 'hooks');
+  let hookIssues = 0;
   for (const hook of expectedHooks) {
     const hookPath = path.join(hooksDir, hook);
     if (!fs.existsSync(hookPath)) {
-      console.log(`❌ Missing hook: ${hook}`);
-      issues++;
+      if (fixing) {
+        const pkgHook = path.join(pkgHooksDir, hook);
+        if (fs.existsSync(pkgHook)) {
+          fs.mkdirSync(hooksDir, { recursive: true });
+          fs.copyFileSync(pkgHook, hookPath);
+          fs.chmodSync(hookPath, 0o755);
+          console.log(`🔧 Restored missing hook: ${hook}`);
+          fixed++;
+        } else {
+          console.log(`❌ Missing hook: ${hook} (not in package — cannot fix)`);
+          issues++;
+          hookIssues++;
+        }
+      } else {
+        console.log(`❌ Missing hook: ${hook}`);
+        issues++;
+        hookIssues++;
+      }
     } else {
       const stat = fs.statSync(hookPath);
       if (!(stat.mode & 0o111)) {
-        console.log(`⚠ Hook not executable: ${hook}`);
-        warnings++;
+        if (fixing) {
+          fs.chmodSync(hookPath, 0o755);
+          console.log(`🔧 Fixed permissions: ${hook}`);
+          fixed++;
+        } else {
+          console.log(`⚠ Hook not executable: ${hook}`);
+          warnings++;
+        }
       }
     }
   }
-  if (issues === 0) {
+  if (hookIssues === 0 && !fixing) {
     console.log(`✓ All ${expectedHooks.length} hooks present`);
+  } else if (fixing) {
+    console.log(`✓ All ${expectedHooks.length} hooks verified`);
   }
 
   // Check checksums
@@ -94,8 +131,15 @@ function run(args) {
       issues++;
     }
   } else {
-    console.log('⚠ Missing .checksums file');
-    warnings++;
+    if (fixing) {
+      const checksums = regenerateChecksums(hooksDir, expectedHooks);
+      fs.writeFileSync(checksumFile, JSON.stringify(checksums, null, 2));
+      console.log('🔧 Regenerated .checksums file');
+      fixed++;
+    } else {
+      console.log('⚠ Missing .checksums file');
+      warnings++;
+    }
   }
 
   // Check Claude Code settings
@@ -123,10 +167,58 @@ function run(args) {
   const rulesDir = path.join('.claude', 'rules');
   if (fs.existsSync(rulesDir)) {
     const rules = fs.readdirSync(rulesDir).filter(f => f.endsWith('.md'));
-    console.log(`✓ ${rules.length} rule files in .claude/rules/`);
+    let brokenLinks = 0;
+    for (const rule of rules) {
+      const linkPath = path.join(rulesDir, rule);
+      try {
+        const stat = fs.lstatSync(linkPath);
+        if (stat.isSymbolicLink()) {
+          // Check if target exists
+          try {
+            fs.readFileSync(linkPath);
+          } catch {
+            if (fixing) {
+              const target = path.join(rhDir, 'rules', rule);
+              if (fs.existsSync(target)) {
+                fs.unlinkSync(linkPath);
+                fs.symlinkSync(path.relative(rulesDir, target), linkPath);
+                console.log(`🔧 Fixed broken symlink: ${rule}`);
+                fixed++;
+              }
+            } else {
+              console.log(`⚠ Broken symlink: .claude/rules/${rule}`);
+              brokenLinks++;
+              warnings++;
+            }
+          }
+        }
+      } catch {}
+    }
+    if (brokenLinks === 0) {
+      console.log(`✓ ${rules.length} rule files in .claude/rules/`);
+    }
   } else {
-    console.log('⚠ No .claude/rules/ directory');
-    warnings++;
+    if (fixing) {
+      fs.mkdirSync(rulesDir, { recursive: true });
+      const rhRulesDir = path.join(rhDir, 'rules');
+      if (fs.existsSync(rhRulesDir)) {
+        const ruleFiles = fs.readdirSync(rhRulesDir).filter(f => f.endsWith('.md'));
+        for (const file of ruleFiles) {
+          const target = path.join(rhRulesDir, file);
+          const link = path.join(rulesDir, file);
+          try {
+            fs.symlinkSync(path.relative(rulesDir, target), link);
+          } catch {
+            fs.copyFileSync(target, link);
+          }
+        }
+        console.log(`🔧 Re-created .claude/rules/ with ${ruleFiles.length} symlinks`);
+        fixed++;
+      }
+    } else {
+      console.log('⚠ No .claude/rules/ directory');
+      warnings++;
+    }
   }
 
   // Check dependencies
@@ -143,18 +235,31 @@ function run(args) {
 
   // Summary
   console.log(`\n${'─'.repeat(40)}`);
-  if (issues === 0 && warnings === 0) {
+  if (issues === 0 && warnings === 0 && fixed === 0) {
     console.log('✅ All checks passed. Right Hooks is healthy.\n');
   } else {
+    if (fixed > 0) console.log(`🔧 ${fixed} issue(s) auto-fixed`);
     if (issues > 0) console.log(`❌ ${issues} issue(s) found`);
     if (warnings > 0) console.log(`⚠  ${warnings} warning(s)`);
-    if (issues > 0) {
-      console.log('\nRun `npx right-hooks init` to fix missing files.');
+    if (issues > 0 && !fixing) {
+      console.log('\nRun `npx right-hooks doctor --fix` to auto-repair.');
     }
     console.log('');
   }
 
   process.exit(issues > 0 ? 1 : 0);
+}
+
+function regenerateChecksums(hooksDir, hookNames) {
+  const checksums = {};
+  for (const file of hookNames) {
+    const hookPath = path.join(hooksDir, file);
+    if (fs.existsSync(hookPath)) {
+      const content = fs.readFileSync(hookPath);
+      checksums[file] = crypto.createHash('sha256').update(content).digest('hex');
+    }
+  }
+  return checksums;
 }
 
 module.exports = { run };
