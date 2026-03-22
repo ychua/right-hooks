@@ -66,13 +66,21 @@ npx right-hooks upgrade         # Upgrade generated hooks (preserves custom)
 
 ## Opinions
 
-Right Hooks is opinionated. These are the hills we die on:
+Right Hooks is opinionated. These ship by default:
 
-📝 **Doc-First** — Design docs and exec plans exist before code. On `feat/` branches, the `pre-pr-create` hook blocks PR creation without them. You can't skip the thinking step.
+📝 **Doc-First** — Design docs and exec plans exist before code. On `feat/` branches, `pre-pr-create` blocks PR creation without them.
 
-📚 **Learnings-First** — Every PR produces a learnings document with a `### Rules to Extract` section. Post-merge, those rules are **automatically extracted** into `.right-hooks/rules/learned-patterns.md` — a file that accumulates over time, making the system smarter with every PR. The point isn't to document what went right. The point is to document what went wrong so future agents don't repeat it.
+📚 **Learnings-First** — Every PR produces a learnings document. Rules are auto-extracted and accumulated. The system gets smarter with every merge.
 
-Both opinions have mechanical enforcement. The four `rh-` rules in `.claude/rules/` are our additional opinions — battery-included but removable. Delete the symlink if you disagree.
+🧪 **Test-First** — Tests are written before implementation. Stubs define the spec; red-green cycles build it.
+
+🔄 **Lifecycle** — Think → Plan → Build → Review → Ship → Reflect. Every step has a purpose.
+
+🌿 **Branch Discipline** — All work on branches, never commit to main. Branch naming enforced.
+
+📐 **Design Quality** — Design docs have alternatives considered, rationale, reversibility. Not just "we chose X."
+
+Disagree with any of these? Delete the symlink from `.claude/rules/` — the hooks still work, the opinions don't.
 
 ---
 
