@@ -18,15 +18,15 @@ jobs:
         with:
           node-version: '24'
 
-      - name: Run tests
-        run: npm test
-        env:
-          RH_TEST: '1'
-
       - name: Install bashunit
         run: curl -s https://bashunit.typeddevs.com/install.sh | bash
 
+      - name: Run unit tests
+        run: npm run test:unit
+        env:
+          RH_TEST: '1'
+
       - name: Run integration tests
-        run: ./lib/bashunit tests/integration/
+        run: npm run test:integration
         env:
           RH_TEST: '1'
