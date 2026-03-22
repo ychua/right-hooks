@@ -80,7 +80,7 @@ Right Hooks is opinionated. These ship by default:
 
 📐 **Design Quality** — Design docs have alternatives considered, rationale, reversibility. Not just "we chose X."
 
-Disagree with any of these? Remove the rule file from `.claude/rules/` — the hooks still work without them.
+All opinions are fully customizable. Edit the rule files, remove what you don't like, add your own. Upgrades never overwrite your changes.
 
 ---
 
