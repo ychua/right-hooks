@@ -38,8 +38,10 @@
     "signatures/"
   ],
   "scripts": {
-    "test": "bash tests/unit/run.sh",
-    "prepare": "husky"
+    "test": "bash tests/unit/run.sh && ./lib/bashunit tests/integration/",
+    "prepare": "husky",
+    "test:unit": "bash tests/unit/run.sh",
+    "test:integration": "./lib/bashunit tests/integration/"
   },
   "engines": {
     "node": ">=18.0.0"
