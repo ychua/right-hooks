@@ -227,6 +227,42 @@ npx right-hooks upgrade
 
 Right Hooks uses Right Hooks. The `.right-hooks/` directory in this repo is our own installation — we develop this project using the same enforcement we ship to you.
 
+## When Hooks Block You
+
+Hooks will sometimes false-positive. Here's how to get unstuck — all from your terminal, not Claude Code.
+
+### Override a specific gate
+```bash
+npx right-hooks override --gate=qa --reason="manual testing done"
+npx right-hooks overrides          # list active overrides
+npx right-hooks overrides --clear  # clear all overrides
+```
+Note: agents cannot run this command — `block-agent-override` hook blocks it. Humans only.
+
+### Agent is stuck in a loop
+```bash
+# Merge from your terminal — Claude Code hooks don't fire outside Claude Code
+gh pr merge <PR-number> --squash --delete-branch
+```
+
+### Need to push to main directly
+```bash
+HUSKY=0 git push origin main
+```
+
+### Disable all hooks temporarily
+```bash
+# Claude Code hooks — move settings aside
+mv .claude/settings.json .claude/settings.json.bak
+# Restore when done
+mv .claude/settings.json.bak .claude/settings.json
+
+# Git hooks — prefix any git command
+HUSKY=0 git push
+```
+
+---
+
 ## Known Limitations
 
 1. **Orphan detection is grep-based.** Misses barrel files, dynamic imports,
