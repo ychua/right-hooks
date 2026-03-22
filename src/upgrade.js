@@ -92,6 +92,25 @@ function run(args) {
     }
   }
 
+  // Skills config — always preserve if exists, generate if missing
+  const skillsDst = path.join(rhDir, 'skills.json');
+  if (fs.existsSync(skillsDst)) {
+    console.log('  ✓ skills.json — preserved (user config)');
+  } else {
+    // Detect tooling and generate default
+    const { detectTooling } = require('./init');
+    const tooling = detectTooling(process.cwd());
+    const sigDir = path.join(pkgRoot, 'signatures');
+    const skillsSource = tooling.hasGstack ? 'skills-gstack.json'
+      : tooling.hasSuperpowers ? 'skills-superpowers.json'
+      : 'skills-generic.json';
+    const skillsSrc = path.join(sigDir, skillsSource);
+    if (fs.existsSync(skillsSrc)) {
+      fs.copyFileSync(skillsSrc, skillsDst);
+      console.log(`  + skills.json — generated (${skillsSource.replace('skills-', '').replace('.json', '')})`);
+    }
+  }
+
   console.log(`\nUpgrade complete: ${updated} updated, ${added} added, ${preserved} preserved`);
   console.log("Run 'npx right-hooks doctor' to verify.\n");
 }

@@ -48,7 +48,7 @@ All hooks follow the contract in `HOOK-CONTRACT.md`:
 
 ```
 bin/right-hooks.js    CLI entry point (dispatches to src/)
-src/                  CLI commands (init, scaffold, status, doctor, diff, override, upgrade, detect)
+src/                  CLI commands (init, scaffold, status, skills, doctor, diff, override, upgrade, detect)
 hooks/                Shell hooks (copied to user's .right-hooks/hooks/ on init)
   _preamble.sh        Shared helpers sourced by all hooks
 rules/                Behavioral rules (symlinked to .claude/rules/ on init)

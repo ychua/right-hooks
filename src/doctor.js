@@ -221,6 +221,49 @@ function run(args) {
     }
   }
 
+  // Check skills config
+  const skillsFile = path.join(rhDir, 'skills.json');
+  if (fs.existsSync(skillsFile)) {
+    try {
+      const skills = JSON.parse(fs.readFileSync(skillsFile, 'utf8'));
+      const { checkProvider, VALID_GATES } = require('./skills');
+      let skillWarnings = 0;
+      for (const gate of VALID_GATES) {
+        const entry = skills[gate];
+        if (entry && entry.provider && !checkProvider(entry.provider)) {
+          console.log(`⚠ Skills: ${gate} requires ${entry.provider} but it's not installed`);
+          skillWarnings++;
+          warnings++;
+        }
+      }
+      if (skillWarnings === 0) {
+        console.log(`✓ Skills config valid (${VALID_GATES.length} gates)`);
+      }
+    } catch {
+      console.log('❌ skills.json is malformed');
+      issues++;
+    }
+  } else {
+    if (fixing) {
+      // Generate default skills.json from tooling detection
+      const sigDir = path.join(pkgRoot, 'signatures');
+      const { detectTooling } = require('./init');
+      const tooling = detectTooling(process.cwd());
+      const skillsSource = tooling.hasGstack ? 'skills-gstack.json'
+        : tooling.hasSuperpowers ? 'skills-superpowers.json'
+        : 'skills-generic.json';
+      const skillsSrc = path.join(sigDir, skillsSource);
+      if (fs.existsSync(skillsSrc)) {
+        fs.copyFileSync(skillsSrc, path.join(rhDir, 'skills.json'));
+        console.log(`🔧 Generated skills.json (${skillsSource.replace('skills-', '').replace('.json', '')})`);
+        fixed++;
+      }
+    } else {
+      console.log('⚠ No skills.json found (hooks will use runtime detection fallback)');
+      warnings++;
+    }
+  }
+
   // Check dependencies
   const deps = ['gh', 'jq', 'git'];
   for (const dep of deps) {

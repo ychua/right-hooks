@@ -52,17 +52,12 @@ if [ "$REVIEW_VERIFIED" != "true" ]; then
   # Fallback: check comment pattern (weaker, can be faked by orchestrator)
   REVIEW_PAT=$(rh_review_pattern)
   REVIEW=$(echo "$RH_ALL_COMMENTS" | jq --arg pat "$REVIEW_PAT" '[.[] | select(.body | test($pat; "i"))] | length' 2>/dev/null || echo "0")
+  REVIEW_HINT=$(rh_skill_command "codeReview" "$PR_NUM")
   if [ "$REVIEW" -eq 0 ]; then
-    if rh_has_gstack; then
-      BLOCKERS="${BLOCKERS}• No review comment found. Run /review to create a code review\n\n"
-    elif rh_has_superpowers; then
-      BLOCKERS="${BLOCKERS}• No review comment found. Use superpowers:requesting-code-review\n\n"
-    else
-      BLOCKERS="${BLOCKERS}• No review comment found. Post a code review comment on PR #${PR_NUM}\n\n"
-    fi
+    BLOCKERS="${BLOCKERS}• No review comment found. ${REVIEW_HINT}\n"
+    BLOCKERS="${BLOCKERS}  → Sentinel: write comment ID to .right-hooks/.review-comment-id\n\n"
   else
     BLOCKERS="${BLOCKERS}• Review comment exists but no sentinel file (.right-hooks/.review-comment-id)\n"
-    BLOCKERS="${BLOCKERS}  → This means the comment may not have been posted by a real review subagent\n"
     BLOCKERS="${BLOCKERS}  → Dispatch a real reviewer: subagents must write comment ID to the sentinel file\n\n"
   fi
 fi
@@ -78,15 +73,12 @@ fi
 if [ "$QA_VERIFIED" != "true" ]; then
   QA_PAT=$(rh_qa_pattern)
   QA=$(echo "$RH_ALL_COMMENTS" | jq --arg pat "$QA_PAT" '[.[] | select(.body | test($pat; "i"))] | length' 2>/dev/null || echo "0")
+  QA_HINT=$(rh_skill_command "qa" "$PR_NUM")
   if [ "$QA" -eq 0 ]; then
-    if rh_has_gstack; then
-      BLOCKERS="${BLOCKERS}• No QA comment found. Run /qa to run QA\n\n"
-    else
-      BLOCKERS="${BLOCKERS}• No QA comment found. Post a QA comment on PR #${PR_NUM}\n\n"
-    fi
+    BLOCKERS="${BLOCKERS}• No QA comment found. ${QA_HINT}\n"
+    BLOCKERS="${BLOCKERS}  → Sentinel: write comment ID to .right-hooks/.qa-comment-id\n\n"
   else
     BLOCKERS="${BLOCKERS}• QA comment exists but no sentinel file (.right-hooks/.qa-comment-id)\n"
-    BLOCKERS="${BLOCKERS}  → This means the comment may not have been posted by a real QA subagent\n"
     BLOCKERS="${BLOCKERS}  → Dispatch a real QA agent: subagents must write comment ID to the sentinel file\n\n"
   fi
 fi
