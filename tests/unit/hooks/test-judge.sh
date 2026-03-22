@@ -52,6 +52,14 @@ The HIGH severity JWT issue should be fixed before merge."
 run_hook "$HOOK" "$GOOD_COMMENT"
 assert_exit_code 0 "$LAST_EXIT"
 
+# Test 3b: No "command not found" errors on pass
+describe "no command-not-found errors on passing comment"
+if grep -qi "command not found" "$LAST_STDERR" 2>/dev/null; then
+  fail "stderr contains 'command not found' — likely missing function"
+else
+  pass
+fi
+
 # Test 4: Block comment that's too short
 describe "blocks comment that is too short"
 SHORT_COMMENT="Reviewed src/index.ts — looks fine. MEDIUM severity."

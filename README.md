@@ -1,5 +1,9 @@
 # 🥊 Right Hooks
 
+[![CI](https://github.com/ychua/right-hooks/actions/workflows/test.yml/badge.svg)](https://github.com/ychua/right-hooks/actions/workflows/test.yml)
+[![npm version](https://img.shields.io/npm/v/right-hooks.svg)](https://www.npmjs.com/package/right-hooks)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 **Write hooks when agents cut corners. ✍️**
 
 > Mechanical enforcement of code quality for AI coding agents — not through prompts (agents ignore those), but through exit codes (agents can't bypass those).
@@ -95,7 +99,7 @@ Why husky? Because Claude Code hooks only fire inside Claude Code sessions. If s
 | Hook | Event | What it does |
 |------|-------|-------------|
 | **block-agent-override** | `PreToolUse` | Blocks agents from calling `right-hooks override` — humans only |
-| **pre-merge** | `PreToolUse` | 7-gate merge check: CI, DoD, doc consistency, planning, review, QA, learnings |
+| **pre-merge** | `PreToolUse` | 7-gate merge check: CI *(hard)*, doc consistency *(hard)*, DoD, planning, review, QA, learnings |
 | **pre-push-master** | `PreToolUse` | Blocks direct push to master/main |
 | **pre-pr-create** | `PreToolUse` | Requires design doc + exec plan for `feat/` branches |
 | **post-edit-check** | `PostToolUse` | Validates code after every file edit (tsc, mypy, cargo — preset-driven) |
@@ -108,7 +112,7 @@ Why husky? Because Claude Code hooks only fire inside Claude Code sessions. If s
 
 | Hook | Event | What it does |
 |------|-------|-------------|
-| **pre-push** | `git push` | Blocks direct push to master/main + validates branch naming |
+| **pre-push** | `git push` | Blocks direct push to master/main + validates branch naming + **runs tests** |
 | **post-merge** | `git merge` | Auto-extracts learnings rules + retro reminder |
 
 ### 📋 Behavioral Enforcement (rules + conventions)
@@ -130,9 +134,10 @@ How each check is enforced. **GH** = Git Hook, **CH** = Claude Code Hook, **B** 
 |---|---|---|
 | Push protection | GH + CH | `husky/pre-push` + `pre-push-master.sh` |
 | Branch naming | GH | `husky/pre-push` |
-| CI green | CH | `pre-merge.sh` |
+| CI green | **CH (hard)** | `pre-merge.sh` — always enforced, no override |
 | DoD complete | CH | `pre-merge.sh` |
-| Doc consistency | CH | `pre-merge.sh` |
+| Doc consistency | **CH (hard)** | `pre-merge.sh` — always enforced, no override |
+| Tests pass before push | **GH** | `husky/pre-push` — runs `npm test` |
 | Planning artifacts | CH | `pre-pr-create.sh` |
 | Review comment | CH | `pre-merge.sh` + `stop-check.sh` |
 | QA comment | CH | `pre-merge.sh` + `stop-check.sh` |
@@ -147,23 +152,38 @@ How each check is enforced. **GH** = Git Hook, **CH** = Claude Code Hook, **B** 
 ---
 
 
+### Hard-Enforced Gates
+
+Two gates **always run** regardless of profile — no override, no escape hatch:
+
+| Gate | Why it's hard |
+|------|--------------|
+| **CI green** | Never merge with failing checks. Period. |
+| **Doc consistency** | Every PR gets a documentation review comment. |
+
+All other gates are profile-dependent.
+
 ### Enforcement Profiles
+
+When multiple profiles match a branch type, the **most specific** profile wins
+(fewest branch prefixes). This prevents catch-all profiles from shadowing
+specific ones — e.g., `strict` (1 prefix: `feat/`) wins over `custom` (9 prefixes).
 
 | Profile | Branch types | Gates enabled |
 |---------|-------------|--------------|
-| **Strict** | `feat/` | All gates: CI, DoD, docs, planning, review, QA, learnings |
-| **Standard** | `fix/`, `refactor/`, `perf/`, `test/`, `ci/` | CI, DoD, docs, review, QA, learnings |
-| **Light** | `docs/`, `chore/`, `hotfix/` | CI, DoD, docs only |
-| **Custom** | All (you choose) | Toggle individual gates in `.right-hooks/active-profile.json` |
+| **Strict** | `feat/` | All gates: planning, review, QA, learnings, DoD |
+| **Standard** | `fix/`, `refactor/`, `perf/`, `test/`, `ci/` | DoD, review, QA, learnings |
+| **Light** | `docs/`, `chore/`, `hotfix/` | DoD only |
+| **Custom** | All (you choose) | Toggle individual gates |
+
+(Plus hard-enforced CI + doc consistency on every profile.)
 
 Custom profile example — enable only what you want:
 ```json
 {
   "name": "custom",
   "gates": {
-    "ci": true,
     "dod": true,
-    "docConsistency": false,
     "planningArtifacts": false,
     "codeReview": true,
     "qa": false,
@@ -173,6 +193,8 @@ Custom profile example — enable only what you want:
   }
 }
 ```
+
+Note: `ci` and `docConsistency` are omitted — they're always on regardless of what you set here.
 
 ---
 
@@ -254,12 +276,23 @@ npx right-hooks upgrade
 
 ---
 
+## Debugging
+
+Set `RH_DEBUG=1` to see verbose hook output — which profile matched, which gates
+are enabled, API call results:
+
+```bash
+RH_DEBUG=1 git push   # see hook decisions in real time
+```
+
+Set `RH_QUIET=1` to suppress success messages (only show blocks).
+
 ## Dogfooding
 
 Right Hooks uses Right Hooks. Every enforcement directory in this repo is our own dogfood:
 
 - **`.right-hooks/`** — Config, hooks, rules, profiles, templates (strict profile)
-- **`.husky/`** — Git hooks (pre-push blocks direct push to main, post-merge extracts learnings)
+- **`.husky/`** — Git hooks (pre-push blocks direct push to main, post-merge extracts learnings, **pre-push runs tests**)
 - **`.claude/`** — Claude Code settings + `rh-` rule symlinks
 
 We develop this project under the same enforcement we ship to you.

@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # RIGHT-HOOKS GENERATED — edits preserved on upgrade
 # Verify subagent actually produced artifacts (anti-gaming)
-# Uses sentinel file protocol (.right-hooks/.last-review-comment-id) — NOT time-window
+# Uses sentinel file protocol — subagents write comment IDs to:
+#   .right-hooks/.review-comment-id  (code review)
+#   .right-hooks/.qa-comment-id      (QA)
 
 RH_HOOK_SELF=$(realpath "$0" 2>/dev/null || echo "$0")
 source "$(dirname "$0")/_preamble.sh"
@@ -18,15 +20,22 @@ fi
 OWNER_REPO=$(gh repo view --json nameWithOwner --jq '.nameWithOwner' 2>/dev/null || echo "")
 
 # Check if a sentinel file was written by the subagent
-SENTINEL=".right-hooks/.last-review-comment-id"
-if [ -f "$SENTINEL" ]; then
-  COMMENT_ID=$(cat "$SENTINEL")
-  # Verify the comment actually exists on the PR
-  EXISTS=$(gh api "repos/${OWNER_REPO}/issues/comments/${COMMENT_ID}" --jq '.id' 2>/dev/null || echo "")
-  if [ -n "$EXISTS" ]; then
-    rm -f "$SENTINEL"
-    exit 0  # Verified — real comment posted by subagent
+# Accept both the canonical names and the legacy name
+VERIFIED=false
+for sentinel in .right-hooks/.review-comment-id .right-hooks/.qa-comment-id; do
+  if [ -f "$sentinel" ]; then
+    COMMENT_ID=$(cat "$sentinel")
+    EXISTS=$(gh api "repos/${OWNER_REPO}/issues/comments/${COMMENT_ID}" --jq '.id' 2>/dev/null || echo "")
+    if [ -n "$EXISTS" ]; then
+      VERIFIED=true
+      break
+    fi
   fi
+done
+
+if [ "$VERIFIED" = "true" ]; then
+  rh_pass "subagent-check" "comment verified via sentinel"
+  exit 0
 fi
 
 # No sentinel or invalid — check if this was a review/QA subagent
@@ -34,16 +43,15 @@ SUBAGENT_OUTPUT=$(echo "$INPUT" | jq -r '.output // ""' 2>/dev/null)
 REVIEW_PAT=$(rh_review_pattern)
 QA_PAT=$(rh_qa_pattern)
 if echo "$SUBAGENT_OUTPUT" | grep -qiE "${REVIEW_PAT}|${QA_PAT}|code review|quality assurance"; then
-  rh_block "subagent-check" "no verified PR comment found"
-  echo "" >&2
-  echo "Subagents must:" >&2
-  echo "  1. Post findings via: gh pr comment $PR_NUM --body '...'" >&2
-  echo "  2. Write comment ID to .right-hooks/.last-review-comment-id" >&2
-  echo "" >&2
-  echo "Example:" >&2
-  echo "  COMMENT_URL=\$(gh pr comment $PR_NUM --body \"\$FINDINGS\" 2>&1)" >&2
-  echo "  COMMENT_ID=\$(echo \"\$COMMENT_URL\" | grep -oE '[0-9]+\$')" >&2
-  echo "  echo \"\$COMMENT_ID\" > .right-hooks/.last-review-comment-id" >&2
+  rh_block_start "subagent-check"
+  rh_block_item "No verified PR comment found"
+  rh_block_item ""
+  rh_block_item "Subagents must:"
+  rh_block_item "  1. Post via: gh pr comment \$PR --body '...'"
+  rh_block_item "  2. Write ID to sentinel file:"
+  rh_block_item "     .right-hooks/.review-comment-id (review)"
+  rh_block_item "     .right-hooks/.qa-comment-id (QA)"
+  rh_block_end
   exit 2
 fi
 

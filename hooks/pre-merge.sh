@@ -181,11 +181,12 @@ fi
 
 # ── Result ──
 if [ -n "$ERRORS" ]; then
-  rh_block "pre-merge" "gates not satisfied"
-  echo "" >&2
-  printf "$ERRORS" >&2
-  echo "" >&2
-  echo "Override a gate: npx right-hooks override --gate=<gate> --reason=\"...\"" >&2
+  rh_block_start "pre-merge"
+  # Feed each error line as a block item (avoid pipe subshell which loses state)
+  while IFS= read -r line; do
+    [ -n "$line" ] && rh_block_item "$line"
+  done <<< "$(printf "$ERRORS")"
+  rh_block_end "Override: npx right-hooks override"
   exit 2
 fi
 

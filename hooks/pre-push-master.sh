@@ -16,11 +16,12 @@ fi
 BRANCH=$(rh_branch)
 
 if [ "$BRANCH" = "master" ] || [ "$BRANCH" = "main" ]; then
-  rh_block "pre-push" "direct push to ${BRANCH} blocked"
-  echo "All changes must go through a PR. Create a branch first:" >&2
-  echo "  git checkout -b feat/your-feature" >&2
-  echo "  git push -u origin feat/your-feature" >&2
-  echo "  gh pr create" >&2
+  rh_block_start "pre-push"
+  rh_block_item "Direct push to ${BRANCH} is not allowed"
+  rh_block_item "Create a branch first:"
+  rh_block_item "  git checkout -b feat/your-feature"
+  rh_block_item "  git push -u origin feat/your-feature"
+  rh_block_end
   exit 2
 fi
 

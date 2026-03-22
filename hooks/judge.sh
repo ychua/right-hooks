@@ -59,5 +59,5 @@ if [ "$ISSUES" -ge 2 ]; then
   exit 2
 fi
 
-rh_pass "judge" "review comment passes quality check"
+printf '✅ judge — review comment passes quality check\n' >&2
 exit 0

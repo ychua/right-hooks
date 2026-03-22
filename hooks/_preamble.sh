@@ -40,21 +40,73 @@ else
 fi
 
 # Logging helpers — all output to stderr
-# Usage: rh_pass "hook-name" "message"
-#        rh_block "hook-name" "message"
-#        rh_info "hook-name" "message"
+# Uses gum (charmbracelet/gum) for styled boxes when available,
+# falls back to plain text when not installed.
+_RH_HAS_GUM=""
+if command -v gum >/dev/null 2>&1; then
+  _RH_HAS_GUM=1
+fi
+
 rh_pass() {
   [ "${RH_QUIET:-}" = "1" ] && return
-  printf '🥊 %-18s → ✓ %s\n' "$1" "$2" >&2
+  local hook="$1" msg="$2"
+  if [ -n "$_RH_HAS_GUM" ]; then
+    echo "✅ ${hook} — ${msg}" | gum style --border rounded --border-foreground 2 --padding "0 1" --margin "0 2" >&2
+  else
+    printf '✅ %s — %s\n' "$hook" "$msg" >&2
+  fi
 }
 
+# Incremental block API: rh_block_start → rh_block_item → rh_block_end
+# Collects items in _RH_BLOCK_LINES, renders on rh_block_end
+_RH_BLOCK_HOOK=""
+_RH_BLOCK_LINES=""
+
+rh_block_start() {
+  _RH_BLOCK_HOOK="$1"
+  _RH_BLOCK_LINES=""
+}
+
+rh_block_item() {
+  _RH_BLOCK_LINES="${_RH_BLOCK_LINES}${1}\n"
+}
+
+rh_block_end() {
+  local hint="${1:-}"
+  local body
+  body=$(printf "🚨 RIGHT HOOKS\n\n🚫 %s — BLOCKED\n\n%b" "$_RH_BLOCK_HOOK" "$_RH_BLOCK_LINES")
+  if [ -n "$_RH_HAS_GUM" ]; then
+    printf '%s' "$body" | gum style --border double --border-foreground 1 --padding "0 1" --margin "0 2" >&2
+    if [ -n "$hint" ]; then
+      printf '%s' "  $hint" | gum style --foreground 8 --margin "0 2" --italic >&2
+    fi
+  else
+    printf '🚨 RIGHT HOOKS — %s BLOCKED\n' "$_RH_BLOCK_HOOK" >&2
+    printf '%b' "$_RH_BLOCK_LINES" | while IFS= read -r line; do
+      [ -n "$line" ] && printf '  %s\n' "$line" >&2
+    done
+    [ -n "$hint" ] && printf '  %s\n' "$hint" >&2
+  fi
+  _RH_BLOCK_HOOK=""
+  _RH_BLOCK_LINES=""
+}
+
+# Legacy rh_block — one-liner for simple blocks
 rh_block() {
-  printf '🥊 %-18s → ✗ %s\n' "$1" "$2" >&2
+  if [ -n "$_RH_HAS_GUM" ]; then
+    echo "🚫 $1 — $2" | gum style --border double --border-foreground 1 --padding "0 1" --margin "0 2" >&2
+  else
+    printf '🚨 %s — %s\n' "$1" "$2" >&2
+  fi
 }
 
 rh_info() {
   [ "${RH_QUIET:-}" = "1" ] && return
-  printf '🥊 %-18s → %s\n' "$1" "$2" >&2
+  if [ -n "$_RH_HAS_GUM" ]; then
+    echo "🥊 ${1} — ${2}" | gum style --border rounded --border-foreground 3 --padding "0 1" --margin "0 2" >&2
+  else
+    printf '🥊 %s — %s\n' "$1" "$2" >&2
+  fi
 }
 
 # Debug helper — only outputs when RH_DEBUG=1
