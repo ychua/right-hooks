@@ -46,10 +46,10 @@ else
   fi
 fi
 
-# --- review output with valid sentinel passes ---
+# --- review output with review sentinel passes ---
 describe "review output with sentinel file passes"
 mkdir -p .right-hooks
-echo "12345" > .right-hooks/.last-review-comment-id
+echo "12345" > .right-hooks/.review-comment-id
 # Without a real gh API, this will fail to verify — but tests the file-reading path
 echo '{"output":"## Code Review complete"}' | RH_TEST=1 bash "$HOOK" >/dev/null 2>&1
 EXIT=$?
@@ -59,14 +59,26 @@ if [ "$EXIT" -eq 0 ] || [ "$EXIT" -eq 2 ]; then
 else
   fail "Expected exit 0 or 2, got $EXIT"
 fi
-rm -f .right-hooks/.last-review-comment-id
+rm -f .right-hooks/.review-comment-id
+
+# --- QA output with qa sentinel passes ---
+describe "QA output with qa sentinel file passes"
+echo "12346" > .right-hooks/.qa-comment-id
+echo '{"output":"## QA Agent report complete"}' | RH_TEST=1 bash "$HOOK" >/dev/null 2>&1
+EXIT=$?
+if [ "$EXIT" -eq 0 ] || [ "$EXIT" -eq 2 ]; then
+  pass
+else
+  fail "Expected exit 0 or 2, got $EXIT"
+fi
+rm -f .right-hooks/.qa-comment-id
 
 # --- stderr explains what subagent must do when blocked ---
 describe "block message explains sentinel protocol"
 # Force a scenario where block message would appear
 echo '{"output":"Code Review findings posted"}' | RH_TEST=1 bash "$HOOK" >/dev/null 2>"$TEST_TMPDIR/stderr" || true
 if [ -s "$TEST_TMPDIR/stderr" ]; then
-  if grep -q "last-review-comment-id\|must\|comment" "$TEST_TMPDIR/stderr" 2>/dev/null; then
+  if grep -q "review-comment-id\|qa-comment-id\|sentinel" "$TEST_TMPDIR/stderr" 2>/dev/null; then
     pass
   else
     pass  # No PR = no stderr output, which is correct
