@@ -54,12 +54,12 @@ if [ "$REVIEW_VERIFIED" != "true" ]; then
   REVIEW_PAT=$(rh_review_pattern)
   REVIEW=$(echo "$RH_ALL_COMMENTS" | jq --arg pat "$REVIEW_PAT" '[.[] | select(.body | test($pat; "i"))] | length' 2>/dev/null || echo "0")
   if [ "$REVIEW" -eq 0 ]; then
-    BLOCKERS="${BLOCKERS}• No review comment found. ${REVIEW_HINT}\n"
+    BLOCKERS="${BLOCKERS}• No review comment found. Spawn the 'reviewer' agent to perform code review.\n"
     BLOCKERS="${BLOCKERS}  → Sentinel: write comment ID to .right-hooks/.review-comment-id\n"
     BLOCKERS="${BLOCKERS}  → Provenance: write skill name to .right-hooks/.skill-proof-codeReview\n\n"
   else
     BLOCKERS="${BLOCKERS}• Review comment exists but no sentinel file (.right-hooks/.review-comment-id)\n"
-    BLOCKERS="${BLOCKERS}  → Dispatch a real reviewer: subagents must write comment ID to the sentinel file\n\n"
+    BLOCKERS="${BLOCKERS}  → Spawn the 'reviewer' agent: subagents must write comment ID to the sentinel file\n\n"
   fi
 else
   # Sentinel verified — now check skill signature (Level 2)
@@ -87,12 +87,12 @@ if [ "$QA_VERIFIED" != "true" ]; then
   QA_PAT=$(rh_qa_pattern)
   QA=$(echo "$RH_ALL_COMMENTS" | jq --arg pat "$QA_PAT" '[.[] | select(.body | test($pat; "i"))] | length' 2>/dev/null || echo "0")
   if [ "$QA" -eq 0 ]; then
-    BLOCKERS="${BLOCKERS}• No QA comment found. ${QA_HINT}\n"
+    BLOCKERS="${BLOCKERS}• No QA comment found. Spawn the 'qa-reviewer' agent to perform QA testing.\n"
     BLOCKERS="${BLOCKERS}  → Sentinel: write comment ID to .right-hooks/.qa-comment-id\n"
     BLOCKERS="${BLOCKERS}  → Provenance: write skill name to .right-hooks/.skill-proof-qa\n\n"
   else
     BLOCKERS="${BLOCKERS}• QA comment exists but no sentinel file (.right-hooks/.qa-comment-id)\n"
-    BLOCKERS="${BLOCKERS}  → Dispatch a real QA agent: subagents must write comment ID to the sentinel file\n\n"
+    BLOCKERS="${BLOCKERS}  → Spawn the 'qa-reviewer' agent: subagents must write comment ID to the sentinel file\n\n"
   fi
 else
   # Sentinel verified — check skill signature (Level 2)
