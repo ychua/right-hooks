@@ -122,13 +122,14 @@ assert_stdout_contains() {
 }
 
 # Run a hook with JSON input, capture exit code and stderr
+# Unsets GIT_DIR/GIT_WORK_TREE so the hook uses CWD's .git (not CI workspace)
 run_hook() {
   local hook="$1"
   local json_input="$2"
   local stdout_file="$TEST_TMPDIR/stdout"
   local stderr_file="$TEST_TMPDIR/stderr"
 
-  echo "$json_input" | RH_TEST=1 bash "$hook" >"$stdout_file" 2>"$stderr_file"
+  echo "$json_input" | env -u GIT_DIR -u GIT_WORK_TREE RH_TEST=1 bash "$hook" >"$stdout_file" 2>"$stderr_file"
   LAST_EXIT=$?
   LAST_STDOUT="$stdout_file"
   LAST_STDERR="$stderr_file"

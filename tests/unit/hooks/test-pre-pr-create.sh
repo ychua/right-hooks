@@ -77,18 +77,8 @@ mkdir -p docs/designs docs/exec-plans
 echo "# Design" > docs/designs/main-test.md
 printf '# Exec Plan\n\n## Definition of Done\n- [ ] works\n' > docs/exec-plans/main-test.md
 git add . && git commit -q -m "add planning docs"
-# Verify git state is correct before running hook
-T7_PWD=$(pwd)
-T7_TOP=$(git rev-parse --show-toplevel 2>&1)
-T7_BR=$(git branch --show-current 2>&1)
-T7_DIFF=$(git diff --name-only main...HEAD 2>&1 | tr '\n' ',')
-echo '{"tool_input":{"command":"gh pr create --title test"}}' | RH_TEST=1 bash "$HOOK" >/dev/null 2>"$REPO_DIR/hook-stderr"
-T7_EXIT=$?
-if [ "$T7_EXIT" -eq 0 ]; then
-  pass
-else
-  fail "exit=$T7_EXIT pwd=$T7_PWD top=$T7_TOP br=$T7_BR diff=$T7_DIFF hookpwd=$(cat "$REPO_DIR/hook-stderr" | tr '\n' '|')"
-fi
+run_hook "$HOOK" '{"tool_input":{"command":"gh pr create --title test"}}'
+assert_exit_code 0 "$LAST_EXIT"
 rm -rf "$REPO_DIR"
 
 # --- Test 8: Blocks feat/ on main-based repo without docs ---
