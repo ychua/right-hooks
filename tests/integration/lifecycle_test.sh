@@ -61,9 +61,12 @@ function set_up() {
 function test_session_start_injects_context() {
   git checkout -qb feat/test-feature-ss 2>/dev/null || git checkout -q feat/test-feature-ss
   export MOCK_PR_EXISTS=0
-  local output
-  output=$(echo '{}' | RH_TEST=1 bash .right-hooks/hooks/session-start.sh 2>/dev/null)
+  local output stderr_out
+  output=$(echo '{}' | RH_TEST=1 bash .right-hooks/hooks/session-start.sh 2>/tmp/rh-test-stderr)
+  stderr_out=$(cat /tmp/rh-test-stderr)
   assert_contains "feat/test-feature-ss" "$output"
+  # Verify hook actually ran (branded output)
+  assert_contains "session-start" "$stderr_out"
 }
 
 # --- Test 2: pre-pr-create blocks without design doc ---
@@ -83,6 +86,9 @@ function test_pre_pr_create_passes_with_docs() {
   git add -A && git commit -qm "add docs"
   run_hook "pre-pr-create.sh" '{"tool_input":{"command":"gh pr create --title test"}}'
   assert_exit_code "0"
+  # Verify hook actually found the docs (not just skipped)
+  assert_contains "pre-pr-create" "$(cat /tmp/rh-test-stderr)"
+  assert_contains "✓" "$(cat /tmp/rh-test-stderr)"
 }
 
 # --- Test 4: pre-merge blocks without review ---
@@ -116,6 +122,10 @@ function test_pre_merge_passes_with_all_gates() {
   git add -A && git commit -qm "add learnings"
   run_hook "pre-merge.sh" '{"tool_input":{"command":"gh pr merge 42"}}'
   assert_exit_code "0"
+  # Verify hook actually checked gates (not just skipped)
+  local stderr_out=$(cat /tmp/rh-test-stderr)
+  assert_contains "pre-merge" "$stderr_out"
+  assert_contains "gates passed" "$stderr_out"
 }
 
 # --- Test 7: stop-check allows when complete ---
@@ -125,6 +135,10 @@ function test_stop_check_allows_when_complete() {
   export MOCK_HAS_REVIEW=1 MOCK_HAS_QA=1
   run_hook "stop-check.sh" '{}'
   assert_exit_code "0"
+  # Verify hook actually checked and passed (not just early-returned)
+  local stderr_out=$(cat /tmp/rh-test-stderr)
+  assert_contains "stop-check" "$stderr_out"
+  assert_contains "workflow complete" "$stderr_out"
 }
 
 # --- Test 8: pre-push blocks main ---
@@ -132,6 +146,8 @@ function test_pre_push_blocks_main() {
   git checkout -q main
   run_hook "pre-push-master.sh" '{"tool_input":{"command":"git push origin main"}}'
   assert_exit_code "2"
+  assert_contains "pre-push" "$(cat /tmp/rh-test-stderr)"
+  assert_contains "blocked" "$(cat /tmp/rh-test-stderr)"
 }
 
 # --- Test 9: pre-merge blocks CI failing ---
@@ -165,13 +181,19 @@ function test_light_profile_skips_review() {
   export MOCK_CI_FAILING=0 MOCK_DOD_INCOMPLETE=0
   run_hook "pre-merge.sh" '{"tool_input":{"command":"gh pr merge 45"}}'
   local exit_code=$?
+  local stderr_out=$(cat /tmp/rh-test-stderr)
   # Restore strict profile for subsequent tests
   node "$PROJECT_DIR/bin/right-hooks.js" profile strict >/dev/null 2>&1
   assert_exit_code "0"
+  # Verify hook ran with light profile (not just skipped)
+  assert_contains "pre-merge" "$stderr_out"
+  assert_contains "gates passed" "$stderr_out"
 }
 
 # --- Test 12: agent cannot self-override ---
 function test_agent_cannot_self_override() {
   run_hook "block-agent-override.sh" '{"tool_input":{"command":"npx right-hooks override --gate=qa --reason=skip"}}'
   assert_exit_code "2"
+  assert_contains "block-override" "$(cat /tmp/rh-test-stderr)"
+  assert_contains "only humans" "$(cat /tmp/rh-test-stderr)"
 }
