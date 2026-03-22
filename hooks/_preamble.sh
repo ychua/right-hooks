@@ -14,12 +14,23 @@ else
   # GitHub auth check — fail open if not authenticated
   gh auth status >/dev/null 2>&1 || { echo "RIGHT-HOOKS: gh not authenticated — hook degrading gracefully" >&2; exit 0; }
 
+  # Cross-platform SHA256 helper
+  rh_sha256() {
+    if command -v sha256sum >/dev/null 2>&1; then
+      sha256sum "$1" | cut -d' ' -f1
+    elif command -v shasum >/dev/null 2>&1; then
+      shasum -a 256 "$1" | cut -d' ' -f1
+    else
+      echo ""
+    fi
+  }
+
   # Integrity check (generated hooks only — custom hooks skip this)
   RH_HOOK_SELF="${RH_HOOK_SELF:-}"
   if [ -n "$RH_HOOK_SELF" ]; then
     EXPECTED=$(jq -r --arg f "$(basename "$RH_HOOK_SELF")" '.[$f] // ""' .right-hooks/.checksums 2>/dev/null)
     if [ -n "$EXPECTED" ]; then
-      ACTUAL=$(shasum -a 256 "$RH_HOOK_SELF" 2>/dev/null | cut -d' ' -f1)
+      ACTUAL=$(rh_sha256 "$RH_HOOK_SELF" 2>/dev/null)
       if [ -n "$ACTUAL" ] && [ "$ACTUAL" != "$EXPECTED" ]; then
         echo "RIGHT-HOOKS: Hook $(basename "$RH_HOOK_SELF") was modified. Run 'npx right-hooks doctor' to fix." >&2
         # Degrade, don't block — might be a legitimate customization
@@ -44,6 +55,13 @@ rh_block() {
 rh_info() {
   [ "${RH_QUIET:-}" = "1" ] && return
   printf '🥊 %-18s → %s\n' "$1" "$2" >&2
+}
+
+# Debug helper — only outputs when RH_DEBUG=1
+# Usage: rh_debug "hook-name" "message"
+rh_debug() {
+  [ "${RH_DEBUG:-}" = "1" ] && printf '🥊 DEBUG %-14s → %s\n' "$1" "$2" >&2
+  return 0
 }
 
 # Helper: get current branch
@@ -108,4 +126,26 @@ rh_branch_type() {
   local branch
   branch=$(rh_branch)
   echo "$branch" | cut -d'/' -f1
+}
+
+# Helper: get a gate value from the profile matching the current branch type
+# Usage: rh_gate_value "feat" "ci" → "true" or "false"
+# Iterates .right-hooks/profiles/*.json, returns the gate value from the first
+# profile whose triggers.branchPrefix includes the given branch type.
+# Returns "false" if no profile matches or gate is not defined.
+rh_gate_value() {
+  local branch_type="$1"
+  local gate="$2"
+  for profile_file in .right-hooks/profiles/*.json; do
+    [ -f "$profile_file" ] || continue
+    local matches
+    matches=$(jq -r --arg bt "$branch_type" \
+      '.triggers.branchPrefix // [] | map(gsub("/"; "")) | index($bt)' \
+      "$profile_file" 2>/dev/null)
+    if [ "$matches" != "null" ] && [ -n "$matches" ]; then
+      jq -r ".gates.${gate} // false" "$profile_file" 2>/dev/null || echo "false"
+      return
+    fi
+  done
+  echo "false"
 }
