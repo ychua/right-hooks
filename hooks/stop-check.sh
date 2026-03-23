@@ -12,6 +12,7 @@ BRANCH_TYPE=$(rh_branch_type)
 # Only enforce on code-review branches
 CODE_REVIEW_TYPES="feat fix test refactor perf ci"
 if ! echo "$CODE_REVIEW_TYPES" | grep -qw "$BRANCH_TYPE"; then
+  rh_record_event "stop-check" "stop" "pass" "non_enforced_branch"
   exit 0
 fi
 
@@ -19,11 +20,13 @@ fi
 rh_match_profile "$BRANCH_TYPE"
 STOP_ENABLED=$(rh_gate_value "stopHook")
 if [ "$STOP_ENABLED" != "true" ]; then
+  rh_record_event "stop-check" "stop" "pass" "stop_disabled"
   exit 0
 fi
 
 PR_NUM=$(rh_pr_number)
 if [ -z "$PR_NUM" ]; then
+  rh_record_event "stop-check" "stop" "pass" "no_pr"
   exit 0
 fi
 
@@ -48,6 +51,7 @@ fi
 
 # If API failed, skip all comment-based checks
 if [ -z "$RH_COMMENTS_OK" ] && [ -n "$OWNER_REPO" ]; then
+  rh_record_event "stop-check" "stop" "pass" "api_unavailable" "$PR_NUM"
   rh_pass "stop-check" "API unavailable — skipping comment checks"
   rm -f "$_RH_COMMENTS_FILE"
   exit 0
@@ -128,6 +132,12 @@ fi
 # The agent should be able to stop freely; learnings are written after review/QA.
 
 if [ -n "$BLOCKERS" ]; then
+  # Derive coarse stop reason — review is earlier in workflow, takes precedence
+  _STOP_REASON="missing_qa"
+  if echo "$BLOCKERS" | grep -qi "review"; then
+    _STOP_REASON="missing_review"
+  fi
+  rh_record_event "stop-check" "stop" "block" "$_STOP_REASON" "$PR_NUM"
   rh_block_start "stop-check"
   while IFS= read -r line; do
     [ -n "$line" ] && rh_block_item "$line"
@@ -140,6 +150,7 @@ if [ -n "$BLOCKERS" ]; then
   exit 2
 fi
 
+rh_record_event "stop-check" "stop" "pass" "pipeline_complete" "$PR_NUM"
 rh_pass "stop-check" "workflow complete on ${BRANCH}"
 rm -f "$_RH_COMMENTS_FILE"
 exit 0
