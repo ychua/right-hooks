@@ -38,67 +38,8 @@ fi
 
 rh_debug "inject-skill" "agent=$AGENT_NAME → gate=$GATE"
 
-# Load skill content for this gate
-# Reuses the same lookup logic as the workflow orchestrator:
-#   1. Read skills.json for configured skill + provider
-#   2. Search for SKILL.md in project-local and home skill directories
-#   3. Fall back to fallback text from skills.json
-#   4. Last resort: generic message
-
-load_skill_content() {
-  local gate="$1"
-
-  # Load and cache skills.json
-  if [ -z "$_RH_SKILLS_LOADED" ]; then
-    _RH_SKILLS_JSON=$(cat .right-hooks/skills.json 2>/dev/null || echo "{}")
-    _RH_SKILLS_LOADED=1
-  fi
-
-  local skill provider
-  skill=$(echo "$_RH_SKILLS_JSON" | jq -r --arg g "$gate" '.[$g].skill // empty' 2>/dev/null)
-  provider=$(echo "$_RH_SKILLS_JSON" | jq -r --arg g "$gate" '.[$g].provider // empty' 2>/dev/null)
-
-  # Try to read the actual skill file
-  if [ -n "$skill" ] && [ -n "$provider" ]; then
-    local skill_file=""
-    local skill_name
-    skill_name=$(echo "$skill" | sed 's|^/||')
-
-    # Check project-local then home directory
-    for base_dir in ".claude/skills/${provider}" "$HOME/.claude/skills/${provider}"; do
-      if [ -f "${base_dir}/SKILL.md" ]; then
-        skill_file="${base_dir}/SKILL.md"
-        break
-      fi
-      if [ -f "${base_dir}/${skill_name}/SKILL.md" ]; then
-        skill_file="${base_dir}/${skill_name}/SKILL.md"
-        break
-      fi
-    done
-
-    if [ -n "$skill_file" ] && [ -f "$skill_file" ]; then
-      rh_debug "inject-skill" "loaded skill content from $skill_file"
-      cat "$skill_file"
-      return
-    fi
-  fi
-
-  # Fallback: use the fallback text from skills.json (with ${PR_NUM} interpolation)
-  local fallback pr_num
-  pr_num=$(rh_pr_number)
-  fallback=$(echo "$_RH_SKILLS_JSON" | jq -r --arg g "$gate" '.[$g].fallback // empty' 2>/dev/null)
-  if [ -n "$fallback" ]; then
-    rh_debug "inject-skill" "using fallback text for gate=$gate"
-    echo "${fallback//\$\{PR_NUM\}/$pr_num}"
-    return
-  fi
-
-  # Last resort: generic instruction
-  rh_debug "inject-skill" "no skill config for gate=$gate — using generic"
-  echo "Complete the $gate step for this PR."
-}
-
-SKILL_CONTENT=$(load_skill_content "$GATE")
+# Load skill content using shared preamble helper
+SKILL_CONTENT=$(rh_load_skill_content "$GATE")
 
 if [ -z "$SKILL_CONTENT" ]; then
   exit 0

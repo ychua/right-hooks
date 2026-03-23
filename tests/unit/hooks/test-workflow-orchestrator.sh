@@ -210,15 +210,15 @@ assert_stdout_contains "QA" "$LAST_STDOUT"
 assert_file_contains ".right-hooks/.workflow-state" '"review_done": true'
 rm -rf "$REPO_DIR"
 
-# --- Test 13: QA sentinel write updates state and triggers learnings ---
-describe "qa sentinel write triggers learnings injection"
+# --- Test 13: QA sentinel write updates state and triggers doc review ---
+describe "qa sentinel write triggers doc review injection"
 new_repo main feat/qa-done
 mkdir -p .right-hooks
-echo '{"pr_created":true,"review_done":true,"qa_done":false,"learnings_done":false,"docs_done":false}' > .right-hooks/.workflow-state
+echo '{"pr_created":true,"review_done":true,"qa_done":false,"docs_done":false,"learnings_done":false}' > .right-hooks/.workflow-state
 run_hook "$HOOK" '{"tool_name":"Bash","tool_input":{"command":"echo 67890 > .right-hooks/.qa-comment-id"}}'
 assert_exit_code 0 "$LAST_EXIT"
 assert_stdout_contains "systemMessage" "$LAST_STDOUT"
-assert_stdout_contains "learnings" "$LAST_STDOUT"
+assert_stdout_contains "doc-reviewer" "$LAST_STDOUT"
 assert_file_contains ".right-hooks/.workflow-state" '"qa_done": true'
 rm -rf "$REPO_DIR"
 
@@ -269,18 +269,18 @@ assert_stdout_contains "systemMessage" "$LAST_STDOUT"
 assert_stdout_contains "sentinel" "$LAST_STDOUT"
 rm -rf "$REPO_DIR"
 
-# --- Test 17: gh pr comment no output when review+qa both done ---
-describe "gh pr comment no output when review and qa done"
+# --- Test 17: gh pr comment no output when review+qa+docs all done ---
+describe "gh pr comment no output when review, qa, and docs done"
 new_repo main feat/comment-done
 mkdir -p .right-hooks
-echo '{"pr_created":true,"review_done":true,"qa_done":true,"learnings_done":false,"docs_done":false}' > .right-hooks/.workflow-state
+echo '{"pr_created":true,"review_done":true,"qa_done":true,"docs_done":true,"learnings_done":false}' > .right-hooks/.workflow-state
 run_hook "$HOOK" '{"tool_name":"Bash","tool_input":{"command":"gh pr comment 42 --body \"Extra comment\""}}'
 assert_exit_code 0 "$LAST_EXIT"
 STDOUT_CONTENT=$(cat "$LAST_STDOUT" 2>/dev/null)
 if [ -z "$STDOUT_CONTENT" ]; then
   pass
 else
-  fail "Expected no output when review+qa done, got: $STDOUT_CONTENT"
+  fail "Expected no output when review+qa+docs done, got: $STDOUT_CONTENT"
 fi
 rm -rf "$REPO_DIR"
 
