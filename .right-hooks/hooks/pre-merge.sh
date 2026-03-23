@@ -53,10 +53,11 @@ fi
 
 # ── Check 1: CI green (HARD ENFORCEMENT — always runs, no override) ──
 CI_STATUS=$(gh pr checks "$PR_NUM" 2>/dev/null || echo "")
-CI_FAILING=$(echo "$CI_STATUS" | { grep -E "fail|pending" || true; })
+# Match fail/pending in the status column (2nd tab-delimited field), not check names
+CI_FAILING=$(echo "$CI_STATUS" | awk -F'\t' '$2 ~ /fail|pending/' || true)
 if [ -n "$CI_FAILING" ]; then
   CI_COUNT=$(echo "$CI_FAILING" | wc -l | tr -d ' ')
-  CI_NAMES=$(echo "$CI_FAILING" | awk '{print $1}' | paste -sd ', ' -)
+  CI_NAMES=$(echo "$CI_FAILING" | awk -F'\t' '{print $1}' | paste -sd ', ' -)
   ERRORS="${ERRORS}CI: ${CI_COUNT} check(s) failing or pending (${CI_NAMES})\n"
 fi
 

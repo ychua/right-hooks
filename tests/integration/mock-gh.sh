@@ -30,10 +30,10 @@ case "$1" in
         ;;
       checks)
         if [ "${MOCK_CI_FAILING:-}" = "1" ]; then
-          echo "fail	build	1m	https://ci/1"
+          echo "build	fail	1m	https://ci/1"
         else
-          echo "pass	build	1m	https://ci/1"
-          echo "pass	lint	30s	https://ci/2"
+          echo "build	pass	1m	https://ci/1"
+          echo "lint	pass	30s	https://ci/2"
         fi
         ;;
       view)

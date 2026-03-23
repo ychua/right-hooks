@@ -45,6 +45,16 @@ if [ -z "$SKILL_CONTENT" ]; then
   exit 0
 fi
 
+# Show which skill is being injected
+# _RH_SKILLS_JSON is cached by rh_load_skill_content
+SKILL_NAME=$(echo "$_RH_SKILLS_JSON" | jq -r --arg g "$GATE" '.[$g].skill // "generic"' 2>/dev/null)
+PROVIDER=$(echo "$_RH_SKILLS_JSON" | jq -r --arg g "$GATE" '.[$g].provider // "none"' 2>/dev/null)
+if [ "$PROVIDER" != "none" ] && [ "$PROVIDER" != "null" ] && [ -n "$PROVIDER" ]; then
+  rh_info "inject-skill" "injecting ${SKILL_NAME} (${PROVIDER}) → ${AGENT_NAME}"
+else
+  rh_info "inject-skill" "injecting generic instructions → ${AGENT_NAME}"
+fi
+
 # Output JSON with systemMessage — jq ensures proper escaping
 jq -n --arg msg "$SKILL_CONTENT" '{"systemMessage": $msg}'
 exit 0
