@@ -65,3 +65,11 @@
 - 265 unit + 13 integration tests all pass
 - Doctor test validates 12 hooks correctly
 - TBD
+- When deferring init.js integration, always create a TODO with the exact files that need updating (settings.json, init.js, doctor.js, upgrade.js)
+- Mark unshipped features in README with 🔜 so the gap is visible and trackable
+- Agent definitions should always be overwritten on upgrade (they're generated, not user-customized)
+- Pending review
+- TBD
+- 265 unit + 13 integration tests all pass
+- Doctor test validates 12 hooks correctly
+- TBD
