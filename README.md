@@ -4,14 +4,36 @@
 [![npm version](https://img.shields.io/npm/v/right-hooks.svg)](https://www.npmjs.com/package/right-hooks)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**Fully automated PR process for AI coding agents. You review once. You hit merge.**
+**Let your AI agent run for hours. Come back to a ready-to-merge PR.**
 
-> You approve a plan. The agent builds it, reviews it, tests it, checks the docs,
-> and writes the learnings — all without you touching the keyboard. When the PR
-> lands in your inbox, every box is already checked. You skim, you merge, you move on.
+> The bottleneck in AI-assisted development isn't the agent — it's you. Every time
+> the agent needs approval, every time you check if it really ran the tests, every
+> time you verify the review comment is real — that's you being the bottleneck.
 >
-> Right Hooks makes this possible by mechanically enforcing every step of the process.
-> Not through prompts (agents ignore those). Through exit codes (agents can't bypass those).
+> Right Hooks removes you from the loop. You approve a plan, walk away, and come
+> back to a PR where every gate has been mechanically enforced. The agent can't
+> cut corners because the hooks won't let it. You skim, you merge, you move on.
+
+```
+You: "Here's the plan. Build it."     ← you're done
+
+  ... 2 hours pass ...                ← you're doing something else
+
+  ✓ Code written with post-edit validation
+  ✓ Code reviewed by a real review subagent
+  ✓ QA tested by a real QA subagent
+  ✓ Docs checked by a real doc subagent
+  ✓ CI green
+  ✓ Definition of Done — every item checked
+  ✓ Learnings distilled with extractable rules
+
+  PR lands in your inbox              ← everything already done
+
+You: *skims diff* → merge ✓           ← 2 minutes
+```
+
+**Two touchpoints.** Approve the plan. Hit merge. Everything in between is
+autonomous, multi-agent, and mechanically enforced.
 
 ### Built for [gstack](https://github.com/garrytan/gstack)
 
@@ -24,75 +46,80 @@ or standalone with any review tooling that posts PR comments.
 
 ---
 
-## The Vision
+## Why Autonomous Agent Runs Need Enforcement
 
-You have a plan. You approve it. Then:
+Long-running agents are powerful — but only if you can trust the output. Without
+enforcement, you're babysitting:
 
-```
-You: "Build it."
-
-  ... agent works ...
-
-  ✓ Code written with post-edit validation
-  ✓ Code reviewed by real /review subagent
-  ✓ QA tested by real /qa subagent
-  ✓ Docs checked by real /document-release subagent
-  ✓ CI green
-  ✓ Definition of Done complete
-  ✓ Learnings distilled with extractable rules
-
-You: *skims PR* → merge ✓
-```
-
-**That's the workflow.** You're involved at two points: approving the plan,
-and hitting the merge button. Everything in between is automated and enforced.
-
-## The Problem It Solves
-
-Without enforcement, you're babysitting every PR:
-
-- Did the agent actually run the tests?
-- Did it get a real code review or fake one?
-- Is the CI green or did it merge anyway?
-- Did it write learnings or skip them?
+- Did the agent actually run the tests, or skip them?
+- Did it get a real code review, or fake one?
+- Is CI green, or did it try to merge anyway?
+- Did it write learnings, or skip the last 10%?
 - Is the documentation still consistent?
 
-You end up checking every gate manually — which defeats the purpose of having
-an AI agent. **Right Hooks eliminates the babysitting.** The agent physically
-cannot reach the merge point without completing every step. When the PR shows
-up, you know it's ready.
+The longer the agent runs unsupervised, the more these questions compound. You
+end up reviewing every PR like a detective — which defeats the entire point of
+autonomous agents.
 
-## How It Works
+**Right Hooks makes unsupervised runs safe.** The agent physically cannot reach
+the merge point without completing every step. Not through prompts (agents ignore
+those). Through exit codes (agents can't bypass those). When the PR shows up, you
+know it's ready — because the hooks already proved it.
 
-Right Hooks adds mechanical enforcement at every stage of the development lifecycle.
-The agent can't skip steps — the hooks physically block forward progress until each
-stage's requirements are met.
+### The Human Supervision Problem
+
+Without Right Hooks, human attention is the bottleneck in AI-assisted development:
+
+```
+Agent works → needs approval → you context-switch → agent continues → needs check
+→ you context-switch → agent finishes → you verify everything → merge
+```
+
+Every interruption costs you 15-30 minutes of context. The agent is fast, but
+you're serialized across every PR.
+
+**With Right Hooks, the agent runs end-to-end:**
+
+```
+You approve plan → agent builds + reviews + tests + documents autonomously → PR ready → you merge
+```
+
+You review once. You merge once. You move on to the next plan.
+
+## How It Enables Autonomous Runs
+
+Right Hooks turns a single agent session into a full multi-agent pipeline — build,
+review, test, document — with no human intervention between plan approval and merge.
 
 ```mermaid
 graph LR
-    T[Think] --> P[Plan]
-    P --> B[Build]
-    B --> R[Review]
-    R --> Q[Test / QA]
-    Q --> S[Ship]
-    S --> Re[Reflect]
+    T["👤 Approve Plan"] --> B["🤖 Build"]
+    B --> R["🤖 Review Agent"]
+    R --> Q["🤖 QA Agent"]
+    Q --> D["🤖 Doc Agent"]
+    D --> L["🤖 Learnings"]
+    L --> M["👤 Merge"]
 
-    style T fill:#4a9eff,color:#fff
-    style P fill:#4a9eff,color:#fff
+    style T fill:#22c55e,color:#fff
     style B fill:#7c4dff,color:#fff
     style R fill:#7c4dff,color:#fff
     style Q fill:#7c4dff,color:#fff
-    style S fill:#ff6b6b,color:#fff
-    style Re fill:#ff6b6b,color:#fff
+    style D fill:#7c4dff,color:#fff
+    style L fill:#7c4dff,color:#fff
+    style M fill:#22c55e,color:#fff
 ```
+
+The green steps are you. The purple steps are autonomous. Every transition between
+agents is enforced by hooks — the orchestrating agent can't skip a step, and each
+subagent runs the **real** skill (not an approximation the parent agent made up).
 
 | Stage | What's enforced | How |
 |-------|----------------|-----|
 | **Think** | Design doc exists before code | `pre-pr-create` blocks PR without `docs/designs/*.md` |
-| **Plan** | Exec plan exists before code | `pre-pr-create` blocks PR without `docs/exec-plans/*.md` |
+| **Plan** | Exec plan with Definition of Done | `pre-pr-create` blocks PR without `docs/exec-plans/*.md` |
 | **Build** | Code compiles after every edit | `post-edit-check` runs `tsc`/`mypy`/`cargo check` per edit |
-| **Review** | Real review from real subagent | `stop-check` + `inject-skill` + sentinel protocol |
-| **Test / QA** | Real QA from real subagent | `stop-check` + `inject-skill` + sentinel protocol |
+| **Review** | Real review from real subagent | `inject-skill` + sentinel protocol — can't be faked |
+| **Test / QA** | Real QA from real subagent | `inject-skill` + sentinel protocol — can't be faked |
 | **Ship** | CI green, DoD complete, docs consistent | `pre-merge` runs 7-gate check before merge |
 | **Reflect** | Learnings doc with extractable rules | `pre-merge` blocks without learnings; `post-merge` auto-extracts rules |
 
@@ -150,11 +177,12 @@ npx right-hooks upgrade         # Upgrade hooks (preserves your customizations)
 
 ---
 
-## How It Works
+## Multi-Agent Orchestration
 
-Right Hooks operates at three levels: **Claude Code hooks** control agent behavior,
-**git hooks via husky** control git operations, and **behavioral rules** guide
-agent decisions through `.claude/rules/`.
+The key to long autonomous runs is **multi-agent orchestration with mechanical
+guarantees.** Right Hooks operates at three levels: **Claude Code hooks** control
+agent behavior, **git hooks via husky** control git operations, and **behavioral
+rules** guide agent decisions through `.claude/rules/`.
 
 ```mermaid
 graph TB
@@ -464,25 +492,30 @@ npx right-hooks doctor # Diagnose configuration issues
 
 ## Why This Exists
 
-I wanted a simple workflow: approve a plan, let the agent build it, review the
-PR once, hit merge. Instead I was babysitting every step.
+I wanted to let agents run autonomously for hours — approve a plan, go to lunch,
+come back to a merged PR. Instead I was the bottleneck in my own AI workflow.
 
-**The agent faked a `/qa` report.** Instead of spawning a QA subagent, the
-orchestrator posted a comment *formatted to look like* gstack `/qa` output.
-I didn't catch it until production. I should never have needed to catch it —
-the system should have made faking impossible.
+**The agent couldn't be trusted unsupervised.** It faked a `/qa` report —
+posting a comment *formatted to look like* gstack `/qa` output instead of
+actually spawning a QA subagent. I didn't catch it until production. In a
+supervised workflow, I might have noticed. In a long autonomous run, there's
+no one watching. The system needed to make faking mechanically impossible.
 
-**A core module shipped as an orphan.** Three separate review tools approved
-the code. Nobody noticed the module was never imported anywhere. I shouldn't
-have to manually verify imports — that's what post-edit validation is for.
+**Autonomous runs amplify quality gaps.** A core module shipped as an orphan.
+Three separate review tools approved the code. Nobody noticed it was never
+imported anywhere. When the agent runs for 2 hours unsupervised, a missed
+check in minute 20 compounds into a broken deploy by minute 120.
 
-**I was reviewing every PR like a human reviewer.** Checking CI status, verifying
-the QA comment was real, making sure learnings were written, confirming the
-design doc existed. All of that should have been done before the PR reached me.
+**Human review doesn't scale.** I was checking CI status, verifying QA comments
+were real, confirming design docs existed — for every PR, on every branch.
+That's not code review, that's process verification. The agent should prove
+the process was followed, not ask me to verify it.
 
-Right Hooks exists so that **when a PR lands in your inbox, the work is already
-done.** The agent can't skip steps. The hooks prove every gate was passed. You
-skim the diff, you confirm the approach, you merge. That's it.
+Right Hooks exists to make **long autonomous agent runs safe and productive.**
+The agent can't skip steps. The hooks prove every gate was passed. Multiple
+agents coordinate through sentinel files and skill injection — not through
+a human relaying messages between them. When the PR lands in your inbox,
+you're reviewing the *approach*, not the *process*. Skim, merge, move on.
 
 ---
 
