@@ -19,11 +19,18 @@ See `docs/designs/right-hooks-v1-review.md` for full context.
 
 ## Phase 3 — Stats & Observability
 
-### `npx right-hooks stats`
-**What:** Gate effectiveness metrics — how often each gate blocks, which are overridden most, learnings extraction rate.
-**Why:** Turns Right Hooks from binary enforcement into a feedback loop.
-**Effort:** M (human: ~3d / CC: ~30min) | **Priority:** P2
-**Depends on:** Needs data model design first. Currently hooks only emit stderr and write override files — no event logging. Needs: event schema, storage location (.right-hooks/.stats/), retention policy, aggregation.
+### `npx right-hooks stats` (core) ✅
+**Completed:** PR #14 (2026-03-23)
+- Gate effectiveness metrics (pass/block per gate, block%)
+- Human involvement tracking (stop events with stop_reason)
+- Shell-native recording via `rh_record_event` in `_preamble.sh`
+- Per-gate inline recording in pre-merge (7 gates) and stop-check (6 exit paths)
+
+### `npx right-hooks stats` (filtering)
+**What:** `--since 7d` and `--pr 12` flags for time-windowed and per-PR drill-down.
+**Why:** Enables "how did this week compare to last week?" and "what blocked PR #15?"
+**Effort:** S (human: ~1d / CC: ~10min) | **Priority:** P3
+**Depends on:** Core stats (above)
 
 ## Phase 4 — Multi-Runtime
 

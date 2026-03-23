@@ -44,16 +44,19 @@ OWNER_REPO=$(gh repo view --json nameWithOwner --jq '.nameWithOwner' 2>/dev/null
 
 # Batch-fetch all PR comments once (paginated) — used by doc, review, QA checks
 # Three states: RH_COMMENTS_OK=1 (fetched, may be empty), RH_COMMENTS_OK="" (API failed)
-RH_ALL_COMMENTS=""
+#
+# Comments stored in a TEMP FILE, not a shell variable.
+# Reason: echo "$var" in zsh interprets \n inside JSON strings as real newlines,
+# producing invalid JSON when piped back to jq. Reading from file avoids this.
+_RH_COMMENTS_FILE=$(mktemp)
 RH_COMMENTS_OK=""
 if [ -n "$OWNER_REPO" ]; then
-  # Fetch to temp file so we can check gh api exit code independently of jq
   _RH_COMMENTS_RAW=$(mktemp)
   if GH_HTTP_TIMEOUT=15 gh api --paginate "repos/${OWNER_REPO}/issues/${PR_NUM}/comments" > "$_RH_COMMENTS_RAW" 2>/dev/null; then
-    RH_ALL_COMMENTS=$(jq -s 'add // []' < "$_RH_COMMENTS_RAW" 2>/dev/null || echo "[]")
+    jq -s 'add // []' < "$_RH_COMMENTS_RAW" > "$_RH_COMMENTS_FILE" 2>/dev/null || echo "[]" > "$_RH_COMMENTS_FILE"
     RH_COMMENTS_OK=1
   else
-    RH_ALL_COMMENTS="[]"
+    echo "[]" > "$_RH_COMMENTS_FILE"
     rh_info "pre-merge" "⚠ GitHub API failed — comment-based gates skipped"
   fi
   rm -f "$_RH_COMMENTS_RAW"
@@ -84,7 +87,7 @@ if [ -z "$RH_COMMENTS_OK" ]; then
   rh_debug "pre-merge" "skipping doc check — API unavailable"
 else
   DOC_PAT=$(rh_doc_pattern)
-  DOC_COMMENT=$(echo "$RH_ALL_COMMENTS" | jq -r --arg pat "$DOC_PAT" '[.[] | select(.body | test($pat; "i"))] | last | .body // ""' 2>/dev/null || echo "")
+  DOC_COMMENT=$(jq -r --arg pat "$DOC_PAT" '[.[] | select(.body | test($pat; "i"))] | last | .body // ""' < "$_RH_COMMENTS_FILE" 2>/dev/null || echo "")
   DOC_HINT=$(rh_skill_command "docConsistency" "$PR_NUM")
   if [ -z "$DOC_COMMENT" ]; then
     ERRORS="${ERRORS}Doc consistency: No documentation review comment found. Spawn the 'doc-reviewer' agent to check documentation consistency.\n"
@@ -114,7 +117,7 @@ if [ "$REQUIRE_CODE_REVIEW" = "true" ] && [ -n "$RH_COMMENTS_OK" ]; then
   if ! rh_has_override "codeReview" "$PR_NUM"; then
     REVIEW_PAT=$(rh_review_pattern)
     SEVERITY_PAT=$(rh_review_severity_pattern)
-    REVIEW_BODY=$(echo "$RH_ALL_COMMENTS" | jq -r --arg pat "$REVIEW_PAT" --arg sev "$SEVERITY_PAT" '[.[] | select(.body | test($pat; "i")) | select(.body | test($sev; "i"))] | last | .body // ""' 2>/dev/null || echo "")
+    REVIEW_BODY=$(jq -r --arg pat "$REVIEW_PAT" --arg sev "$SEVERITY_PAT" '[.[] | select(.body | test($pat; "i")) | select(.body | test($sev; "i"))] | last | .body // ""' < "$_RH_COMMENTS_FILE" 2>/dev/null || echo "")
     REVIEW_HINT=$(rh_skill_command "codeReview" "$PR_NUM")
     if [ -z "$REVIEW_BODY" ]; then
       ERRORS="${ERRORS}Code Review: No review comment with severity markers found. ${REVIEW_HINT}\n"
@@ -132,7 +135,7 @@ if [ "$REQUIRE_CODE_REVIEW" = "true" ] && [ -n "$RH_COMMENTS_OK" ]; then
     # Check staleness — are there commits after last review?
     # Exempt: learnings-only commits (avoids infinite loop where
     # learnings commit → stale → re-review → more learnings → stale...)
-    LAST_REVIEW_TIME=$(echo "$RH_ALL_COMMENTS" | jq -r --arg pat "$REVIEW_PAT" '[.[] | select(.body | test($pat; "i"))] | last | .created_at // ""' 2>/dev/null || echo "")
+    LAST_REVIEW_TIME=$(jq -r --arg pat "$REVIEW_PAT" '[.[] | select(.body | test($pat; "i"))] | last | .created_at // ""' < "$_RH_COMMENTS_FILE" 2>/dev/null || echo "")
     if [ -n "$LAST_REVIEW_TIME" ]; then
       # Get commits after last review
       COMMITS_AFTER_JSON=$(gh api "repos/${OWNER_REPO}/pulls/${PR_NUM}/commits" \
@@ -158,9 +161,9 @@ if [ "$REQUIRE_CODE_REVIEW" = "true" ] && [ -n "$RH_COMMENTS_OK" ]; then
     fi
 
     # Review round cap (max 2)
-    REVIEW_COUNT=$(echo "$RH_ALL_COMMENTS" | jq --arg pat "$REVIEW_PAT" '[.[] | select(.body | test($pat; "i"))] | length' 2>/dev/null || echo "0")
+    REVIEW_COUNT=$(jq --arg pat "$REVIEW_PAT" '[.[] | select(.body | test($pat; "i"))] | length' < "$_RH_COMMENTS_FILE" 2>/dev/null || echo "0")
     if [ "$REVIEW_COUNT" -ge 2 ]; then
-      HAS_BLOCKERS=$(echo "$RH_ALL_COMMENTS" | jq --arg pat "$REVIEW_PAT" '[.[] | select(.body | test($pat; "i"))] | last | .body | test("CRITICAL|HIGH"; "i")' 2>/dev/null || echo "false")
+      HAS_BLOCKERS=$(jq --arg pat "$REVIEW_PAT" '[.[] | select(.body | test($pat; "i"))] | last | .body | test("CRITICAL|HIGH"; "i")' < "$_RH_COMMENTS_FILE" 2>/dev/null || echo "false")
       if [ "$HAS_BLOCKERS" = "false" ]; then
         echo "INFO: 2 review rounds complete, no HIGH/CRITICAL findings. Ready for merge." >&2
       fi
@@ -173,7 +176,7 @@ if [ "$REQUIRE_QA" = "true" ] && [ -n "$RH_COMMENTS_OK" ]; then
   if ! rh_has_override "qa" "$PR_NUM"; then
     QA_PAT=$(rh_qa_pattern)
     QA_RESULT_PAT=$(rh_qa_result_pattern)
-    QA_BODY=$(echo "$RH_ALL_COMMENTS" | jq -r --arg pat "$QA_PAT" --arg res "$QA_RESULT_PAT" '[.[] | select(.body | test($pat; "i")) | select(.body | test($res; "i"))] | last | .body // ""' 2>/dev/null || echo "")
+    QA_BODY=$(jq -r --arg pat "$QA_PAT" --arg res "$QA_RESULT_PAT" '[.[] | select(.body | test($pat; "i")) | select(.body | test($res; "i"))] | last | .body // ""' < "$_RH_COMMENTS_FILE" 2>/dev/null || echo "")
     QA_HINT=$(rh_skill_command "qa" "$PR_NUM")
     if [ -z "$QA_BODY" ]; then
       ERRORS="${ERRORS}QA: No QA comment with test result markers found. ${QA_HINT}\n"
@@ -250,6 +253,7 @@ if [ -n "$ERRORS" ]; then
     [ -n "$line" ] && rh_block_item "$line"
   done <<< "$(printf "$ERRORS")"
   rh_block_end "Override: npx right-hooks override"
+  rm -f "$_RH_COMMENTS_FILE"
   exit 2
 fi
 
@@ -259,4 +263,5 @@ for g in "$REQUIRE_CI" "$REQUIRE_DOD" "$REQUIRE_DOC_CONSISTENCY" "$REQUIRE_PLANN
   [ "$g" = "true" ] && GATE_COUNT=$((GATE_COUNT + 1))
 done
 rh_pass "pre-merge" "all ${GATE_COUNT} gates passed"
+rm -f "$_RH_COMMENTS_FILE"
 exit 0

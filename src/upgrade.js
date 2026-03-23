@@ -104,23 +104,46 @@ function run(args) {
     }
   }
 
-  // Skills config — always preserve if exists, generate if missing
+  // Skills config — field-level merge (preserves user choices, adds new fields)
   const skillsDst = path.join(rhDir, 'skills.json');
-  if (fs.existsSync(skillsDst)) {
-    console.log('  ✓ skills.json — preserved (user config)');
-  } else {
-    // Detect tooling and generate default
-    const { detectTooling } = require('./init');
-    const tooling = detectTooling(process.cwd());
-    const sigDir = path.join(pkgRoot, 'signatures');
-    const skillsSource = tooling.hasGstack ? 'skills-gstack.json'
-      : tooling.hasSuperpowers ? 'skills-superpowers.json'
-      : 'skills-generic.json';
-    const skillsSrc = path.join(sigDir, skillsSource);
-    if (fs.existsSync(skillsSrc)) {
-      fs.copyFileSync(skillsSrc, skillsDst);
-      console.log(`  + skills.json — generated (${skillsSource.replace('skills-', '').replace('.json', '')})`);
+  const { detectTooling } = require('./init');
+  const tooling = detectTooling(process.cwd());
+  const sigDir = path.join(pkgRoot, 'signatures');
+  const skillsSource = tooling.hasGstack ? 'skills-gstack.json'
+    : tooling.hasSuperpowers ? 'skills-superpowers.json'
+    : 'skills-generic.json';
+  const skillsSrc = path.join(sigDir, skillsSource);
+
+  if (fs.existsSync(skillsDst) && fs.existsSync(skillsSrc)) {
+    const { mergeSkills } = require('./skills-merge');
+    let existing = {};
+    try {
+      existing = JSON.parse(fs.readFileSync(skillsDst, 'utf8'));
+    } catch {}
+    const shipped = JSON.parse(fs.readFileSync(skillsSrc, 'utf8'));
+    const merged = mergeSkills(existing, shipped);
+    fs.writeFileSync(skillsDst, JSON.stringify(merged, null, 2));
+    console.log('  ✓ skills.json — merged (new fields updated, user choices preserved)');
+  } else if (!fs.existsSync(skillsDst) && fs.existsSync(skillsSrc)) {
+    fs.copyFileSync(skillsSrc, skillsDst);
+    console.log(`  + skills.json — generated (${skillsSource.replace('skills-', '').replace('.json', '')})`);
+  }
+
+  // Merge settings.json hook registrations (new hooks added in later versions)
+  const settingsSrc = path.join(pkgRoot, 'settings.json');
+  const settingsDst = path.join('.claude', 'settings.json');
+  if (fs.existsSync(settingsSrc)) {
+    const { mergeSettings } = require('./settings-merge');
+    const shipped = JSON.parse(fs.readFileSync(settingsSrc, 'utf8'));
+    let existing = {};
+    if (fs.existsSync(settingsDst)) {
+      try {
+        existing = JSON.parse(fs.readFileSync(settingsDst, 'utf8'));
+      } catch {}
     }
+    const merged = mergeSettings(existing, shipped);
+    fs.writeFileSync(settingsDst, JSON.stringify(merged, null, 2));
+    console.log('  ✓ settings.json — hook registrations merged');
   }
 
   console.log(`\nUpgrade complete: ${updated} updated, ${added} added, ${preserved} preserved`);

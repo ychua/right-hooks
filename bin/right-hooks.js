@@ -126,6 +126,7 @@ Examples:
   npx right-hooks profile strict          Switch to strict enforcement
   npx right-hooks doctor                  Check hook health
   npx right-hooks doctor --fix            Auto-repair common issues
+  npx right-hooks stats                   Show gate effectiveness metrics
   npx right-hooks diff                    Preview what upgrade would change
   npx right-hooks override --gate=qa \\
     --reason="Manual testing done"  Override a gate

@@ -31,16 +31,16 @@ OWNER_REPO=$(gh repo view --json nameWithOwner --jq '.nameWithOwner' 2>/dev/null
 BLOCKERS=""
 
 # Batch-fetch all PR comments once (paginated)
-# Check gh api exit code independently — pipeline masks failures
-RH_ALL_COMMENTS=""
+# Comments stored in temp file — echo "$var" in zsh corrupts JSON (interprets \n).
+_RH_COMMENTS_FILE=$(mktemp)
 RH_COMMENTS_OK=""
 if [ -n "$OWNER_REPO" ]; then
   _RH_COMMENTS_RAW=$(mktemp)
   if GH_HTTP_TIMEOUT=15 gh api --paginate "repos/${OWNER_REPO}/issues/${PR_NUM}/comments" > "$_RH_COMMENTS_RAW" 2>/dev/null; then
-    RH_ALL_COMMENTS=$(jq -s 'add // []' < "$_RH_COMMENTS_RAW" 2>/dev/null || echo "[]")
+    jq -s 'add // []' < "$_RH_COMMENTS_RAW" > "$_RH_COMMENTS_FILE" 2>/dev/null || echo "[]" > "$_RH_COMMENTS_FILE"
     RH_COMMENTS_OK=1
   else
-    RH_ALL_COMMENTS="[]"
+    echo "[]" > "$_RH_COMMENTS_FILE"
     rh_info "stop-check" "⚠ GitHub API failed — comment checks skipped"
   fi
   rm -f "$_RH_COMMENTS_RAW"
@@ -49,6 +49,7 @@ fi
 # If API failed, skip all comment-based checks
 if [ -z "$RH_COMMENTS_OK" ] && [ -n "$OWNER_REPO" ]; then
   rh_pass "stop-check" "API unavailable — skipping comment checks"
+  rm -f "$_RH_COMMENTS_FILE"
   exit 0
 fi
 
@@ -68,7 +69,7 @@ REVIEW_HINT=$(rh_skill_command "codeReview" "$PR_NUM")
 if [ "$REVIEW_VERIFIED" != "true" ]; then
   # Fallback: check comment pattern (weaker, can be faked by orchestrator)
   REVIEW_PAT=$(rh_review_pattern)
-  REVIEW=$(echo "$RH_ALL_COMMENTS" | jq --arg pat "$REVIEW_PAT" '[.[] | select(.body | test($pat; "i"))] | length' 2>/dev/null || echo "0")
+  REVIEW=$(jq --arg pat "$REVIEW_PAT" '[.[] | select(.body | test($pat; "i"))] | length' < "$_RH_COMMENTS_FILE" 2>/dev/null || echo "0")
   if [ "$REVIEW" -eq 0 ]; then
     BLOCKERS="${BLOCKERS}• No review comment found. Spawn the 'reviewer' agent to perform code review.\n"
     BLOCKERS="${BLOCKERS}  → Sentinel: write comment ID to .right-hooks/.review-comment-id\n"
@@ -101,7 +102,7 @@ fi
 QA_HINT=$(rh_skill_command "qa" "$PR_NUM")
 if [ "$QA_VERIFIED" != "true" ]; then
   QA_PAT=$(rh_qa_pattern)
-  QA=$(echo "$RH_ALL_COMMENTS" | jq --arg pat "$QA_PAT" '[.[] | select(.body | test($pat; "i"))] | length' 2>/dev/null || echo "0")
+  QA=$(jq --arg pat "$QA_PAT" '[.[] | select(.body | test($pat; "i"))] | length' < "$_RH_COMMENTS_FILE" 2>/dev/null || echo "0")
   if [ "$QA" -eq 0 ]; then
     BLOCKERS="${BLOCKERS}• No QA comment found. Spawn the 'qa-reviewer' agent to perform QA testing.\n"
     BLOCKERS="${BLOCKERS}  → Sentinel: write comment ID to .right-hooks/.qa-comment-id\n"
@@ -135,8 +136,10 @@ if [ -n "$BLOCKERS" ]; then
     rh_block_item "TIP: Use verification-before-completion"
   fi
   rh_block_end "Override: npx right-hooks override"
+  rm -f "$_RH_COMMENTS_FILE"
   exit 2
 fi
 
 rh_pass "stop-check" "workflow complete on ${BRANCH}"
+rm -f "$_RH_COMMENTS_FILE"
 exit 0
