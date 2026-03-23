@@ -35,10 +35,15 @@ You: *skims diff* → merge ✓           ← 2 minutes
 **Two touchpoints.** Approve the plan. Hit merge. Everything in between is
 autonomous, multi-agent, and mechanically enforced.
 
-### Built for [gstack](https://github.com/garrytan/gstack)
+### A PR-Based Rigorous Engineering Workflow
 
-Right Hooks enforces gstack's Think → Plan → Build → Review → Test → Ship → Reflect
-lifecycle with mechanical hooks at every stage. When detected, Right Hooks auto-configures
+Autonomous doesn't mean sloppy. Every change goes through a full PR lifecycle —
+design doc, implementation, code review, QA, documentation check, learnings —
+the same process a senior engineer would follow, enforced mechanically so the
+agent can't skip steps even when running unsupervised.
+
+Built for [gstack](https://github.com/garrytan/gstack)'s Think → Plan → Build →
+Review → Test → Ship → Reflect lifecycle. When detected, Right Hooks auto-configures
 to match gstack's skill output formats and dispatch patterns.
 
 Also works with [superpowers](https://github.com/obra/superpowers) for TDD implementation,
