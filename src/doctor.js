@@ -142,14 +142,28 @@ function run(args) {
     }
   }
 
-  // Check Claude Code settings
+  // Check Claude Code settings (existence + completeness)
   const settingsFile = path.join('.claude', 'settings.json');
+  const shippedSettingsFile = path.join(pkgRoot, 'settings.json');
   if (fs.existsSync(settingsFile)) {
     try {
       const settings = JSON.parse(fs.readFileSync(settingsFile, 'utf8'));
       if (settings.hooks) {
         const hookEvents = Object.keys(settings.hooks);
         console.log(`✓ Claude Code settings: ${hookEvents.length} hook events configured`);
+
+        // Verify completeness against shipped settings
+        const completenessResult = checkSettingsCompleteness(
+          settings, shippedSettingsFile, fixing
+        );
+        issues += completenessResult.issues;
+        warnings += completenessResult.warnings;
+        fixed += completenessResult.fixed;
+
+        // In --fix mode, write the merged settings back
+        if (fixing && completenessResult.merged) {
+          fs.writeFileSync(settingsFile, JSON.stringify(completenessResult.merged, null, 2));
+        }
       } else {
         console.log('⚠ Claude Code settings.json has no hooks section');
         warnings++;
@@ -303,6 +317,77 @@ function regenerateChecksums(hooksDir, hookNames) {
     }
   }
   return checksums;
+}
+
+/**
+ * Compare installed settings.json against shipped settings.json for completeness.
+ * Reports missing hook event registrations and missing commands within events.
+ * In --fix mode, returns the merged result using the shared mergeSettings helper.
+ */
+function checkSettingsCompleteness(installed, shippedPath, fixing) {
+  const result = { issues: 0, warnings: 0, fixed: 0, merged: null };
+
+  if (!fs.existsSync(shippedPath)) {
+    return result;
+  }
+
+  let shipped;
+  try {
+    shipped = JSON.parse(fs.readFileSync(shippedPath, 'utf8'));
+  } catch {
+    return result;
+  }
+
+  if (!shipped.hooks) {
+    return result;
+  }
+
+  const installedHooks = installed.hooks || {};
+  let missingCount = 0;
+
+  for (const [event, entries] of Object.entries(shipped.hooks)) {
+    if (!installedHooks[event]) {
+      missingCount++;
+      if (fixing) {
+        console.log(`🔧 Added missing hook registration: ${event}`);
+        result.fixed++;
+      } else {
+        console.log(`⚠ Missing hook registration: ${event}`);
+        result.warnings++;
+      }
+    } else {
+      // Check for missing commands within this event
+      const installedCmds = new Set(
+        installedHooks[event].flatMap(e => (e.hooks || []).map(h => h.command))
+      );
+      for (const entry of entries) {
+        for (const hook of (entry.hooks || [])) {
+          if (!installedCmds.has(hook.command)) {
+            missingCount++;
+            const shortCmd = hook.command.split('/').pop();
+            if (fixing) {
+              console.log(`🔧 Added missing command in ${event}: ${shortCmd}`);
+              result.fixed++;
+            } else {
+              console.log(`⚠ Missing command in ${event}: ${shortCmd}`);
+              result.warnings++;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  if (fixing && missingCount > 0) {
+    const { mergeSettings } = require('./settings-merge');
+    result.merged = mergeSettings(installed, shipped);
+  }
+
+  if (missingCount === 0) {
+    console.log('✓ All hook registrations present in settings.json');
+  }
+
+  return result;
 }
 
 module.exports = { run };
