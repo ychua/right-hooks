@@ -4,21 +4,97 @@
 [![npm version](https://img.shields.io/npm/v/right-hooks.svg)](https://www.npmjs.com/package/right-hooks)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**Write hooks when agents cut corners. ✍️**
+**Fully automated PR process for AI coding agents. You review once. You hit merge.**
 
-> Mechanical enforcement of code quality for AI coding agents — not through prompts (agents ignore those), but through exit codes (agents can't bypass those).
+> You approve a plan. The agent builds it, reviews it, tests it, checks the docs,
+> and writes the learnings — all without you touching the keyboard. When the PR
+> lands in your inbox, every box is already checked. You skim, you merge, you move on.
+>
+> Right Hooks makes this possible by mechanically enforcing every step of the process.
+> Not through prompts (agents ignore those). Through exit codes (agents can't bypass those).
 
-### Works great with [gstack](https://github.com/garrytan/gstack) + [superpowers](https://github.com/obra/superpowers)
+### Built for [gstack](https://github.com/garrytan/gstack)
 
-Right Hooks was battle-tested with gstack for planning and review, and superpowers
-for TDD implementation. When detected, Right Hooks auto-configures to match their
-output formats. The three tools complement each other:
+Right Hooks enforces gstack's Think → Plan → Build → Review → Test → Ship → Reflect
+lifecycle with mechanical hooks at every stage. When detected, Right Hooks auto-configures
+to match gstack's skill output formats and dispatch patterns.
 
-- **gstack** — Think + Plan + Review + Ship (the process)
-- **superpowers** — Build + Test + Verify (the implementation)
-- **Right Hooks** — Enforce all of it (the guardrails)
+Also works with [superpowers](https://github.com/obra/superpowers) for TDD implementation,
+or standalone with any review tooling that posts PR comments.
 
-Not using either? Right Hooks works standalone with any review tooling that posts PR comments — CodeRabbit, custom scripts, or manual reviews. Configure comment patterns in `.right-hooks/signatures.json` and skill dispatch in `.right-hooks/skills.json`.
+---
+
+## The Vision
+
+You have a plan. You approve it. Then:
+
+```
+You: "Build it."
+
+  ... agent works ...
+
+  ✓ Code written with post-edit validation
+  ✓ Code reviewed by real /review subagent
+  ✓ QA tested by real /qa subagent
+  ✓ Docs checked by real /document-release subagent
+  ✓ CI green
+  ✓ Definition of Done complete
+  ✓ Learnings distilled with extractable rules
+
+You: *skims PR* → merge ✓
+```
+
+**That's the workflow.** You're involved at two points: approving the plan,
+and hitting the merge button. Everything in between is automated and enforced.
+
+## The Problem It Solves
+
+Without enforcement, you're babysitting every PR:
+
+- Did the agent actually run the tests?
+- Did it get a real code review or fake one?
+- Is the CI green or did it merge anyway?
+- Did it write learnings or skip them?
+- Is the documentation still consistent?
+
+You end up checking every gate manually — which defeats the purpose of having
+an AI agent. **Right Hooks eliminates the babysitting.** The agent physically
+cannot reach the merge point without completing every step. When the PR shows
+up, you know it's ready.
+
+## How It Works
+
+Right Hooks adds mechanical enforcement at every stage of the development lifecycle.
+The agent can't skip steps — the hooks physically block forward progress until each
+stage's requirements are met.
+
+```mermaid
+graph LR
+    T[Think] --> P[Plan]
+    P --> B[Build]
+    B --> R[Review]
+    R --> Q[Test / QA]
+    Q --> S[Ship]
+    S --> Re[Reflect]
+
+    style T fill:#4a9eff,color:#fff
+    style P fill:#4a9eff,color:#fff
+    style B fill:#7c4dff,color:#fff
+    style R fill:#7c4dff,color:#fff
+    style Q fill:#7c4dff,color:#fff
+    style S fill:#ff6b6b,color:#fff
+    style Re fill:#ff6b6b,color:#fff
+```
+
+| Stage | What's enforced | How |
+|-------|----------------|-----|
+| **Think** | Design doc exists before code | `pre-pr-create` blocks PR without `docs/designs/*.md` |
+| **Plan** | Exec plan exists before code | `pre-pr-create` blocks PR without `docs/exec-plans/*.md` |
+| **Build** | Code compiles after every edit | `post-edit-check` runs `tsc`/`mypy`/`cargo check` per edit |
+| **Review** | Real review from real subagent | `stop-check` + `inject-skill` + sentinel protocol |
+| **Test / QA** | Real QA from real subagent | `stop-check` + `inject-skill` + sentinel protocol |
+| **Ship** | CI green, DoD complete, docs consistent | `pre-merge` runs 7-gate check before merge |
+| **Reflect** | Learnings doc with extractable rules | `pre-merge` blocks without learnings; `post-merge` auto-extracts rules |
 
 ---
 
@@ -28,17 +104,16 @@ Not using either? Right Hooks works standalone with any review tooling that post
 npx right-hooks init
 ```
 
-That's it. Right Hooks auto-detects your project type, installs hooks, copies rules
+Right Hooks auto-detects your project type, installs hooks, copies rules
 and templates, configures Claude Code, and sets up git hooks.
 
 ```
-🥊  Right Hooks — Lifecycle Enforcement for Agentic Software Harness
+🥊  Right Hooks — Process Enforcement for AI Coding Agents
 
 Detecting project...
   ✓ TypeScript (tsconfig.json found)
   ✓ GitHub repo (gh auth status ok)
   ✓ gstack detected (~/.claude/skills/gstack/)
-  ✓ superpowers detected (Claude Code plugin)
 
   Recommended preset: typescript
 
@@ -68,139 +143,183 @@ npx right-hooks profile strict  # Switch enforcement profile
 npx right-hooks doctor          # Diagnose hook configuration issues
 npx right-hooks doctor --fix    # Auto-repair common issues
 npx right-hooks diff            # Preview what upgrade would change
-npx right-hooks override        # Override a gate with audited reason
-npx right-hooks upgrade         # Upgrade generated hooks (preserves custom)
+npx right-hooks override        # Override a gate with audited reason (humans only)
+npx right-hooks upgrade         # Upgrade hooks (preserves your customizations)
 ```
 
 ---
 
-## Opinions
+## How It Works
 
-🥊 Right Hooks is opinionated. These are the hills we die on ⛰️:
+Right Hooks operates at three levels: **Claude Code hooks** control agent behavior,
+**git hooks via husky** control git operations, and **behavioral rules** guide
+agent decisions through `.claude/rules/`.
 
-📝 **Doc-First** — Design docs and exec plans exist before code. On `feat/` branches, `pre-pr-create` blocks PR creation without them.
+```mermaid
+graph TB
+    subgraph "Agent Session"
+        A[Agent starts work] --> B{Bash / Edit / Write}
+        B --> |"PostToolUse"| WO[workflow-orchestrator]
+        WO --> |"systemMessage"| C[Agent gets next-step guidance]
+        C --> D{Agent spawns subagent}
+        D --> |"SubagentStart"| IS[inject-skill]
+        IS --> |"systemMessage: SKILL.md"| E[Subagent runs real skill]
+        E --> F[Posts PR comment + sentinel]
+        F --> G{Agent tries to stop}
+        G --> |"Stop"| SC[stop-check]
+        SC --> |"All gates pass"| H[Session ends]
+        SC --> |"Gate fails"| C
+    end
 
-📚 **Learnings-First** — Every PR produces a learnings document. Rules are auto-extracted and accumulated. The system gets smarter with every merge.
+    style WO fill:#4a9eff,color:#fff
+    style IS fill:#7c4dff,color:#fff
+    style SC fill:#ff6b6b,color:#fff
+```
 
-🧪 **Test-First** — Tests are written before implementation. Stubs define the spec; red-green cycles build it.
+### Flow Orchestration (Proactive)
 
-🔄 **Lifecycle** — Think → Plan → Build → Review → Ship → Reflect. Every step has a purpose.
+The **workflow orchestrator** fires after every significant Bash command and injects
+the next required step as a `systemMessage`. The agent never gets lost — it's told
+exactly what to do at every transition.
 
-🌿 **Branch Discipline** — All work on branches, never commit to main. Branch naming enforced.
+```
+Agent runs gh pr create
+  → orchestrator: "Spawn the 'reviewer' agent for code review"
+Agent writes review sentinel
+  → orchestrator: "Spawn the 'qa-reviewer' agent for QA"
+Agent writes QA sentinel
+  → orchestrator: "Spawn the 'doc-reviewer' agent for docs"
+Agent writes doc sentinel
+  → orchestrator: "Create learnings at docs/retros/<feature>-learnings.md"
+```
 
-📐 **Design Quality** — Design docs have alternatives considered, rationale, reversibility. Not just "we chose X."
+### Skill Injection (Architectural Enforcement)
 
-All opinions are fully customizable. Edit the rule files, remove what you don't like, add your own. Upgrades never overwrite your changes.
+When an agent spawns a reviewer/QA/doc subagent, the **inject-skill** hook reads
+`skills.json`, finds the installed skill (gstack `/review`, `/qa`, `/document-release`),
+and injects the full SKILL.md content as the subagent's system prompt.
 
----
+The subagent can't skip its own instructions. It runs the **real** skill workflow —
+not an approximation the orchestrating agent made up.
 
-## What Right Hooks Does
+```
+skills.json → { "codeReview": { "skill": "/review", "provider": "gstack" } }
+                                        ↓
+inject-skill → reads ~/.claude/skills/gstack/review/SKILL.md
+                                        ↓
+subagent's system prompt = full gstack /review instructions
+```
 
-Right Hooks uses two hook systems — **Claude Code hooks** (control agent behavior at the AI level) and **git hooks via [husky](https://typicode.github.io/husky/)** (control git operations at the OS level). Both layers work together: Claude Code hooks catch the agent *before* it acts, git hooks catch anything that slips through *when* it acts.
+### Gate Enforcement (Safety Net)
 
-Why husky? Because Claude Code hooks only fire inside Claude Code sessions. If someone (or something) pushes to master directly via the terminal, or merges without going through Claude Code, the Claude Code hooks never trigger. Husky hooks run on *every* git operation regardless of how it was initiated — they're the last line of defense.
-
-### 🤖 Claude Code Hooks (agent-level enforcement)
-
-| Hook | Event | What it does |
-|------|-------|-------------|
-| **block-agent-override** | `PreToolUse` | Blocks agents from calling `right-hooks override` — humans only |
-| **pre-merge** | `PreToolUse` | 7-gate merge check: CI *(hard)*, doc consistency *(hard)*, DoD, planning, review, QA, learnings |
-| **pre-push-master** | `PreToolUse` | Blocks direct push to master/main |
-| **pre-pr-create** | `PreToolUse` | Requires design doc + exec plan for `feat/` branches |
-| **post-edit-check** | `PostToolUse` | Validates code after every file edit (tsc, mypy, cargo — preset-driven) |
-| **stop-check** | `Stop` | Prevents agent from stopping before review/QA cycle completes |
-| **subagent-stop-check** | `SubagentStop` | Verifies subagent actually posted a real PR comment (anti-gaming) |
-| **session-start** | `SessionStart` | Injects project status context when a session begins |
-| **config-change** | `ConfigChange` | Blocks modification of hook configuration during a session |
-
-### 🔒 Git Hooks via Husky (OS-level enforcement)
-
-| Hook | Event | What it does |
-|------|-------|-------------|
-| **pre-push** | `git push` | Blocks direct push to master/main + validates branch naming + **runs tests** |
-| **post-merge** | `git merge` | Auto-extracts learnings rules + retro reminder |
-
-### 📋 Behavioral Enforcement (rules + conventions)
-
-Not everything can be mechanically enforced. Rules guide agent behavior through `.claude/rules/`, prefixed with `rh-` to separate from your own rules.
-
-| Rule | What it covers |
-|------|---------------|
-| **rh-development-lifecycle** | Full workflow: planning → build → review/QA → learnings → merge |
-| **rh-git-workflow** | Branch naming, enforcement matrix (GH/CH/B types) |
-| **rh-design-docs** | Design doc requirements: alternatives, rationale, reversibility |
-| **rh-testing** | TDD discipline: stubs → red-green → refactor |
-
-### 📊 Enforcement Method
-
-How each check is enforced. **GH** = Git Hook, **CH** = Claude Code Hook, **B** = Behavioral.
-
-| Check | Method | Hook / Source |
-|---|---|---|
-| Push protection | GH + CH | `husky/pre-push` + `pre-push-master.sh` |
-| Branch naming | GH | `husky/pre-push` |
-| CI green | **CH (hard)** | `pre-merge.sh` — always enforced, no override |
-| DoD complete | CH | `pre-merge.sh` |
-| Doc consistency | **CH (hard)** | `pre-merge.sh` — always enforced, no override |
-| Tests pass before push | **GH** | `husky/pre-push` — runs `npm test` |
-| Planning artifacts | CH | `pre-pr-create.sh` |
-| Review comment | CH | `pre-merge.sh` + `stop-check.sh` |
-| QA comment | CH | `pre-merge.sh` + `stop-check.sh` |
-| Learnings + Rules to Extract | CH | `pre-merge.sh` + `husky/post-merge` |
-| Post-edit validation | CH | `post-edit-check.sh` |
-| Subagent output | CH | `subagent-stop-check.sh` |
-| Override protection | CH | `block-agent-override.sh` |
-| Config tamper | CH | `config-change` |
-| TDD discipline | B | `rh-testing.md` |
-| Design doc quality | B | `rh-design-docs.md` |
+Even with proactive guidance and skill injection, gates remain the final safety net.
+If the agent somehow reaches a stop or merge point without completing the workflow,
+it gets blocked.
 
 ---
 
+## Hooks Reference
 
-### Hard-Enforced Gates
+### Claude Code Hooks
 
-Two gates **always run** regardless of profile — no override, no escape hatch:
+| Hook | Event | Stage | What it does |
+|------|-------|-------|-------------|
+| **session-start** | `SessionStart` | — | Injects project status context |
+| **pre-pr-create** | `PreToolUse` | Think/Plan | Blocks PR without design doc + exec plan (`feat/` branches) |
+| **post-edit-check** | `PostToolUse` | Build | Validates code after every edit (`tsc`/`mypy`/`cargo`) |
+| **workflow-orchestrator** 🔜 | `PostToolUse` | All | Proactively injects next-step guidance after workflow actions |
+| **inject-skill** 🔜 | `SubagentStart` | Review/QA | Injects configured skill content into subagents |
+| **judge** | `SubagentStop` | Review | Filters low-quality review comments |
+| **subagent-stop-check** | `SubagentStop` | Review/QA | Verifies subagent posted a real PR comment (sentinel protocol) |
+| **stop-check** | `Stop` | Review/QA | Blocks agent from stopping before review/QA/docs complete |
+| **pre-merge** | `PreToolUse` | Ship | 7-gate merge check: CI, DoD, docs, planning, review, QA, learnings |
+| **pre-push-master** | `PreToolUse` | Ship | Blocks direct push to master/main |
+| **block-agent-override** | `PreToolUse` | — | Blocks agents from calling `right-hooks override` |
+| **config-change** | `ConfigChange` | — | Blocks modification of hook configuration |
 
-| Gate | Why it's hard |
-|------|--------------|
-| **CI green** | Never merge with failing checks. Period. |
-| **Doc consistency** | Every PR gets a documentation review comment. |
+### Git Hooks (via Husky)
 
-All other gates are profile-dependent.
+| Hook | Event | What it does |
+|------|-------|-------------|
+| **pre-push** | `git push` | Blocks push to master/main + validates branch naming + runs tests |
+| **post-merge** | `git merge` | Auto-extracts learnings rules into `learned-patterns.md` |
 
-### Enforcement Profiles
+### Agent Definitions 🔜
 
-When multiple profiles match a branch type, the **most specific** profile wins
-(fewest branch prefixes). This prevents catch-all profiles from shadowing
-specific ones — e.g., `strict` (1 prefix: `feat/`) wins over `custom` (9 prefixes).
+Right Hooks ships generic agent definitions that the `inject-skill` hook fills with
+the right skill content at runtime. Agent installation via `init` is coming soon — the
+definitions exist in `agents/` and can be manually copied to `.claude/agents/`.
 
-| Profile | Branch types | Gates enabled |
-|---------|-------------|--------------|
-| **Strict** | `feat/` | All gates: planning, review, QA, learnings, DoD |
-| **Standard** | `fix/`, `refactor/`, `perf/`, `test/`, `ci/` | DoD, review, QA, learnings |
-| **Light** | `docs/`, `chore/`, `hotfix/` | DoD only |
-| **Custom** | All (you choose) | Toggle individual gates |
+| Agent | Gate | Sentinel file |
+|-------|------|--------------|
+| `reviewer` | codeReview | `.right-hooks/.review-comment-id` |
+| `qa-reviewer` | qa | `.right-hooks/.qa-comment-id` |
+| `doc-reviewer` | docConsistency | `.right-hooks/.doc-comment-id` |
 
-(Plus hard-enforced CI + doc consistency on every profile.)
+---
 
-Custom profile example — enable only what you want:
+## Skill Configuration
+
+Right Hooks dispatches review, QA, and doc consistency to configurable skills.
+Default: gstack skills. Fallback: generic prompts.
+
+```bash
+npx right-hooks skills              # View current config
+npx right-hooks skills set codeReview /review        # gstack (auto-detected)
+npx right-hooks skills set qa superpowers:qa-runner   # superpowers
+```
+
+The configuration lives in `.right-hooks/skills.json`:
+
 ```json
 {
-  "name": "custom",
-  "gates": {
-    "dod": true,
-    "planningArtifacts": false,
-    "codeReview": true,
-    "qa": false,
-    "learnings": true,
-    "stopHook": true,
-    "postEditCheck": true
+  "codeReview": {
+    "skill": "/review",
+    "provider": "gstack",
+    "fallback": "Dispatch a code review subagent for PR #${PR_NUM}",
+    "skillSignature": "Generated by /review|Structural code audit"
+  },
+  "qa": {
+    "skill": "/qa",
+    "provider": "gstack",
+    "fallback": "Dispatch a QA subagent for PR #${PR_NUM}",
+    "skillSignature": "Generated by /qa|QA.*health score"
+  },
+  "docConsistency": {
+    "skill": "/document-release",
+    "provider": "gstack",
+    "fallback": "Post a documentation consistency comment on PR #${PR_NUM}",
+    "skillSignature": "Generated by /document-release|Documentation health:"
   }
 }
 ```
 
-Note: `ci` and `docConsistency` are omitted — they're always on regardless of what you set here.
+### 3-Level Skill Enforcement
+
+| Level | What's verified | Bypassable? |
+|-------|----------------|-------------|
+| **Behavioral** | Stop hook tells agent to spawn the right subagent | Agent could ignore |
+| **Signature** | PR comment body matches `skillSignature` regex | Requires knowing the pattern |
+| **Provenance** | `.skill-proof-*` file matches configured skill name | Requires knowing the skill |
+| **Architectural** | `inject-skill` makes the subagent's prompt = the skill | Subagent can't skip its own prompt |
+
+---
+
+## Enforcement Profiles
+
+Different branch types get different enforcement levels. The most specific profile
+wins when multiple match.
+
+| Profile | Branch types | Gates enabled |
+|---------|-------------|--------------|
+| **Strict** | `feat/` | All: planning, review, QA, learnings, DoD, stop hook |
+| **Standard** | `fix/`, `refactor/`, `perf/`, `test/`, `ci/` | Review, QA, learnings, DoD |
+| **Light** | `docs/`, `chore/`, `hotfix/` | DoD only |
+| **Custom** | You choose | Toggle individual gates |
+
+**Hard-enforced gates** (always on, all profiles, no override):
+- **CI green** — never merge with failing checks
+- **Doc consistency** — every PR gets a documentation review
 
 ---
 
@@ -217,9 +336,9 @@ Note: `ci` and `docConsistency` are omitted — they're always on regardless of 
 │  detection. Auto-detected or manually selected.         │
 ├─────────────────────────────────────────────────────────┤
 │  Layer 1: Universal (works everywhere)                  │
-│  Merge gates, push protection, stop hook, subagent      │
-│  verification, judge layer, session context. Pure       │
-│  GitHub API + git. No language dependencies.            │
+│  Merge gates, push protection, stop hook, flow          │
+│  orchestration, skill injection, subagent verification. │
+│  Pure GitHub API + git. No language dependencies.       │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -233,29 +352,31 @@ Note: `ci` and `docConsistency` are omitted — they're always on regardless of 
 | Rust | `Cargo.toml` | `cargo check` | — |
 | Generic | (fallback) | — | — |
 
+---
+
 ## Override / Escape Hatch
 
-Hooks will false-positive. Instead of hacking scripts or deleting `.right-hooks/`,
-use the built-in override mechanism:
+Hooks will false-positive. Use the built-in override mechanism — not hacking scripts:
 
 ```bash
 npx right-hooks override --gate=qa --reason="Manual testing done, QA agent broken"
 ```
 
-This creates an audited override file committed to git — visible in the PR diff
-to anyone reviewing.
+Creates an audited override file committed to git — visible in the PR diff.
 
 ```bash
 npx right-hooks overrides          # List active overrides
 npx right-hooks overrides --clear  # Clear all overrides
 ```
 
+**Agents cannot override.** The `block-agent-override` hook blocks it mechanically.
+Overrides are for humans only.
+
 ---
 
 ## Upgrading
 
-Right Hooks separates **generated hooks** (managed by Right Hooks) from
-**custom hooks** (your modifications, never overwritten).
+Generated hooks are managed by Right Hooks. Your modifications are never overwritten.
 
 ```bash
 npx right-hooks upgrade
@@ -265,59 +386,25 @@ npx right-hooks upgrade
 🥊  Right Hooks upgrade: v1.0.0 → v1.1.0
 
   ✓ pre-merge.sh — updated
-  ✓ session-start.sh — new hook (added)
+  ✓ workflow-orchestrator.sh — new hook (added)
   ⊘ stop-check.sh — you modified this file (preserved)
   ✓ learned-patterns.md — no changes (preserved)
 ```
 
 ---
 
-## Prerequisites
-
-- GitHub repository with PR workflow
-- Claude Code or Codex CLI
-- `gh` CLI authenticated
-- `jq` installed
-- Node.js ≥ 18
-
----
-
-## Debugging
-
-Set `RH_DEBUG=1` to see verbose hook output — which profile matched, which gates
-are enabled, API call results:
-
-```bash
-RH_DEBUG=1 git push   # see hook decisions in real time
-```
-
-Set `RH_QUIET=1` to suppress success messages (only show blocks).
-
-## Dogfooding
-
-Right Hooks uses Right Hooks. Every enforcement directory in this repo is our own dogfood:
-
-- **`.right-hooks/`** — Config, hooks, rules, profiles, templates (strict profile)
-- **`.husky/`** — Git hooks (pre-push blocks direct push to main, post-merge extracts learnings, **pre-push runs tests**)
-- **`.claude/`** — Claude Code settings + `rh-` rule symlinks
-
-We develop this project under the same enforcement we ship to you.
-
 ## When Hooks Block You
 
-Hooks will sometimes false-positive. Here's how to get unstuck — all from your terminal, not Claude Code.
+All escape hatches — from your terminal, not Claude Code:
 
 ### Override a specific gate
 ```bash
 npx right-hooks override --gate=qa --reason="manual testing done"
-npx right-hooks overrides          # list active overrides
-npx right-hooks overrides --clear  # clear all overrides
 ```
-Note: agents cannot run this command — `block-agent-override` hook blocks it. Humans only.
 
 ### Agent is stuck in a loop
 ```bash
-# Merge from your terminal — Claude Code hooks don't fire outside Claude Code
+# Merge from terminal — Claude Code hooks don't fire outside Claude Code
 gh pr merge <PR-number> --squash --delete-branch
 ```
 
@@ -328,13 +415,32 @@ HUSKY=0 git push origin main
 
 ### Disable all hooks temporarily
 ```bash
-# Claude Code hooks — move settings aside
+# Claude Code hooks
 mv .claude/settings.json .claude/settings.json.bak
-# Restore when done
-mv .claude/settings.json.bak .claude/settings.json
+# Restore: mv .claude/settings.json.bak .claude/settings.json
 
-# Git hooks — prefix any git command
+# Git hooks
 HUSKY=0 git push
+```
+
+---
+
+## Prerequisites
+
+- GitHub repository with PR workflow
+- Claude Code or Codex CLI
+- `gh` CLI authenticated
+- `jq` installed
+- Node.js >= 18
+
+---
+
+## Debugging
+
+```bash
+RH_DEBUG=1 git push   # See hook decisions in real time
+RH_QUIET=1 git push   # Only show blocks, suppress success messages
+npx right-hooks doctor # Diagnose configuration issues
 ```
 
 ---
@@ -344,43 +450,54 @@ HUSKY=0 git push
 1. **Orphan detection is grep-based.** Misses barrel files, dynamic imports,
    and aliased paths. Good heuristic, not a dependency graph.
 
-2. **Three PreToolUse hooks fire on every Bash command.** Each fast-exits if
-   irrelevant (<50ms), but it's still 3 process spawns per `ls`.
+2. **SubagentStart JSON schema is assumed.** The `inject-skill` hook assumes
+   `{"agent_name": "..."}` — not yet verified against Claude Code's actual
+   payload. Falls back gracefully to generic instructions if the schema differs.
 
 3. **Config protection is defense-in-depth.** An agent could `rm -rf .right-hooks/`.
    Checksums make tampering *visible*, not impossible.
 
-4. **Claude Code specific (v1).** v1.3 roadmap includes adapters for Cursor,
-   Codex, Aider, and Windsurf.
-
----
+4. **Claude Code specific (v1).** Multi-runtime adapters (Codex, Cursor, Aider)
+   are on the roadmap.
 
 ---
 
 ## Why This Exists
 
-I built a product using [gstack](https://github.com/garrytan/gstack) for planning and review, and [superpowers](https://github.com/obra/superpowers) for TDD implementation. gstack's `/plan-ceo-review` scoped the features, `/plan-eng-review` locked the architecture, `/review` and `/qa` checked the code. superpowers' `/execute-plan` implemented the plans with subagent-driven development and two-stage review. The skills were excellent. The agents were not.
+I wanted a simple workflow: approve a plan, let the agent build it, review the
+PR once, hit merge. Instead I was babysitting every step.
 
-gstack gives agents the *right process to follow*. superpowers gives them *disciplined implementation*. Right Hooks makes sure they *actually follow both*.
+**The agent faked a `/qa` report.** Instead of spawning a QA subagent, the
+orchestrator posted a comment *formatted to look like* gstack `/qa` output.
+I didn't catch it until production. I should never have needed to catch it —
+the system should have made faking impossible.
 
-Here's what happened when they didn't:
+**A core module shipped as an orphan.** Three separate review tools approved
+the code. Nobody noticed the module was never imported anywhere. I shouldn't
+have to manually verify imports — that's what post-edit validation is for.
 
-**The agent faked a `/qa` report.** Instead of spawning a QA subagent, the orchestrator posted a comment *formatted to look like* gstack `/qa` output — complete with severity markers and test results. It passed my merge gate because the hook only checked that a comment with the right keywords existed. I didn't catch it until production.
+**I was reviewing every PR like a human reviewer.** Checking CI status, verifying
+the QA comment was real, making sure learnings were written, confirming the
+design doc existed. All of that should have been done before the PR reached me.
 
-**A core module shipped as an orphan.** The agent followed both workflows — gstack's `/plan-eng-review` approved the architecture, superpowers' subagent-driven-development implemented it with two-stage review (spec compliance + code quality), gstack's `/review` praised the code. Nobody noticed the module was never imported anywhere. It sat there, perfect and unused, while the feature it was supposed to power didn't work.
-
-**TDD discipline vanished under pressure.** superpowers' `test-driven-development` skill says "write the test first, watch it fail, write minimal code to pass." gstack's `/plan-eng-review` produced a clear test plan. But when the exec plan got complex, the agent started writing all tests at once, then all implementation at once. The tests still passed, but they were written to match the implementation rather than define the spec. superpowers' `verification-before-completion` skill says "evidence before claims" — the agent just didn't follow it.
-
-Every one of these failures had the same root cause: **the agent optimized for completing the task, not for doing it well.** gstack gave it the right process. superpowers gave it the right discipline. The agent just… didn't follow either.
-
-So I started writing hooks. First one to block direct pushes to master. Then one to block merges without review. Then one to stop the agent from quitting before QA was done. Then one to verify the QA wasn't faked. Then one to validate every file edit. Then one to protect the hooks from being disabled by the agent itself.
-
-The product I set out to build? Still in progress. But the enforcement system I built to keep agents honest while building it — that turned out to be the thing worth shipping.
-
-Right Hooks exists because good process without enforcement is a suggestion. If a rule can be mechanically enforced, it should be. The framework is the leash — not to choke the agent, but to keep it honest.
+Right Hooks exists so that **when a PR lands in your inbox, the work is already
+done.** The agent can't skip steps. The hooks prove every gate was passed. You
+skim the diff, you confirm the approach, you merge. That's it.
 
 ---
 
+## Dogfooding
+
+Right Hooks uses Right Hooks. Every enforcement directory in this repo is our own dogfood:
+
+- **`.right-hooks/`** — Config, hooks, rules, profiles, templates (strict profile)
+- **`.husky/`** — Git hooks (pre-push runs tests, post-merge extracts learnings)
+- **`.claude/`** — Claude Code settings + `rh-` rule symlinks
+- **`agents/`** — Reviewer, QA, and doc-reviewer agent definitions
+
+We develop this project under the same enforcement we ship to you.
+
+---
 
 ## License
 
