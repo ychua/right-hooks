@@ -208,6 +208,10 @@ function suggestGate(input) {
   return bestName;
 }
 
+// Freeze to prevent accidental mutation
+Object.freeze(GATE_REGISTRY);
+for (const gate of Object.values(GATE_REGISTRY)) Object.freeze(gate);
+
 module.exports = {
   GATE_REGISTRY,
   getAllGateNames,
