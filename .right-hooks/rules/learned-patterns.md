@@ -57,9 +57,6 @@
 - When deferring init.js integration, always create a TODO with the exact files that need updating (settings.json, init.js, doctor.js, upgrade.js)
 - Mark unshipped features in README with 🔜 so the gap is visible and trackable
 - Agent definitions should always be overwritten on upgrade (they're generated, not user-customized)
-- When deferring init.js integration, always create a TODO with the exact files that need updating (settings.json, init.js, doctor.js, upgrade.js)
-- Mark unshipped features in README with 🔜 so the gap is visible and trackable
-- Agent definitions should always be overwritten on upgrade (they're generated, not user-customized)
 - Always use `awk -F'\t'` for tab-delimited CLI output — default field splitting breaks multi-word names
 - Check `gh api` exit code independently of downstream jq — pipeline masks API failures
 - Test API failure paths explicitly — mock both success and failure to verify graceful degradation
