@@ -35,6 +35,61 @@ You: *skims diff* → merge ✓           ← 2 minutes
 **Two touchpoints.** Approve the plan. Hit merge. Everything in between is
 autonomous, multi-agent, and mechanically enforced.
 
+## Quick Start
+
+```bash
+npx right-hooks init
+```
+
+Right Hooks auto-detects your project type, installs hooks, copies rules
+and templates, configures Claude Code, and sets up git hooks.
+
+```
+🥊  Right Hooks — Process Enforcement for AI Coding Agents
+
+Detecting project...
+  ✓ TypeScript (tsconfig.json found)
+  ✓ GitHub repo (gh auth status ok)
+  ✓ gstack detected (~/.claude/skills/gstack/)
+
+  Recommended preset: typescript
+
+? Select enforcement profile:
+  ❯ Recommended (strict for feat/, standard for fix/, light for docs/)
+    Strict only (full lifecycle for everything)
+    Light (minimal enforcement)
+    Custom (toggle individual gates)
+
+✓ Hooks installed to .right-hooks/hooks/ (12 hooks)
+✓ Agents installed to .claude/agents/ (3 agents)
+✓ Skills configured: gstack
+✓ Rules symlinked to .claude/rules/ (4 rule files)
+✓ Templates installed to .right-hooks/templates/ (3 templates)
+✓ Husky hooks configured (pre-push + post-merge)
+✓ Claude Code settings.json updated
+```
+
+### Commands
+
+```bash
+npx right-hooks status          # Show active profile, preset, and gate status
+npx right-hooks scaffold        # Create docs directories (designs, exec-plans, retros)
+npx right-hooks skills          # Show configured review/QA/doc skills
+npx right-hooks skills set <gate> <skill>  # Configure a skill for a gate
+npx right-hooks preset python   # Switch language preset
+npx right-hooks profile strict  # Switch enforcement profile
+npx right-hooks doctor          # Diagnose hook configuration issues
+npx right-hooks doctor --fix    # Auto-repair common issues
+npx right-hooks stats           # Show gate effectiveness metrics and human involvement
+npx right-hooks explain <gate>  # Explain what a gate checks and how to fix blocks
+npx right-hooks explain         # List all gates with per-profile status
+npx right-hooks diff            # Preview what upgrade would change
+npx right-hooks override        # Override a gate with audited reason (humans only)
+npx right-hooks upgrade         # Upgrade hooks (preserves your customizations)
+```
+
+---
+
 ### Process Enforcement for Claude Code
 
 Autonomous doesn't mean sloppy. Every change goes through a full PR lifecycle —
@@ -130,61 +185,6 @@ subagent runs the **real** skill (not an approximation the parent agent made up)
 | **Test / QA** | Real QA from real subagent | `inject-skill` + sentinel protocol — can't be faked |
 | **Ship** | CI green, DoD complete, docs consistent | `pre-merge` runs 7-gate check before merge |
 | **Reflect** | Learnings doc with extractable rules | `pre-merge` blocks without learnings; `post-merge` auto-extracts rules |
-
----
-
-## Quick Start
-
-```bash
-npx right-hooks init
-```
-
-Right Hooks auto-detects your project type, installs hooks, copies rules
-and templates, configures Claude Code, and sets up git hooks.
-
-```
-🥊  Right Hooks — Process Enforcement for AI Coding Agents
-
-Detecting project...
-  ✓ TypeScript (tsconfig.json found)
-  ✓ GitHub repo (gh auth status ok)
-  ✓ gstack detected (~/.claude/skills/gstack/)
-
-  Recommended preset: typescript
-
-? Select enforcement profile:
-  ❯ Recommended (strict for feat/, standard for fix/, light for docs/)
-    Strict only (full lifecycle for everything)
-    Light (minimal enforcement)
-    Custom (toggle individual gates)
-
-✓ Hooks installed to .right-hooks/hooks/ (12 hooks)
-✓ Agents installed to .claude/agents/ (3 agents)
-✓ Skills configured: gstack
-✓ Rules symlinked to .claude/rules/ (4 rule files)
-✓ Templates installed to .right-hooks/templates/ (3 templates)
-✓ Husky hooks configured (pre-push + post-merge)
-✓ Claude Code settings.json updated
-```
-
-### Commands
-
-```bash
-npx right-hooks status          # Show active profile, preset, and gate status
-npx right-hooks scaffold        # Create docs directories (designs, exec-plans, retros)
-npx right-hooks skills          # Show configured review/QA/doc skills
-npx right-hooks skills set <gate> <skill>  # Configure a skill for a gate
-npx right-hooks preset python   # Switch language preset
-npx right-hooks profile strict  # Switch enforcement profile
-npx right-hooks doctor          # Diagnose hook configuration issues
-npx right-hooks doctor --fix    # Auto-repair common issues
-npx right-hooks stats           # Show gate effectiveness metrics and human involvement
-npx right-hooks explain <gate>  # Explain what a gate checks and how to fix blocks
-npx right-hooks explain         # List all gates with per-profile status
-npx right-hooks diff            # Preview what upgrade would change
-npx right-hooks override        # Override a gate with audited reason (humans only)
-npx right-hooks upgrade         # Upgrade hooks (preserves your customizations)
-```
 
 ---
 
