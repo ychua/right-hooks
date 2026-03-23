@@ -60,3 +60,11 @@
 - Always use `awk -F'\t'` for tab-delimited CLI output — default field splitting breaks multi-word names
 - Check `gh api` exit code independently of downstream jq — pipeline masks API failures
 - Test API failure paths explicitly — mock both success and failure to verify graceful degradation
+- When adding new hook event registrations to settings.json, always update upgrade.js merge logic — not just init.js
+- When adding new fields to skills.json templates, ensure upgrade.js merges them into existing installs — unconditional preservation loses new features
+- Doctor should verify completeness of all config files it manages, not just existence
+- Test integration tests against the actual default branch name used in `git init` — don't assume `main`
+- When implementing immutable helpers, verify deep cloning of nested structures — spread operator only shallow copies
+- Silent catch blocks that discard user data should at minimum log a warning
+- Always run integration tests in the same environment as pre-push hooks to catch path resolution issues early
+- When fixing pre-existing test bugs, verify the fix in the exact test runner context (bashunit), not just manual reproduction
