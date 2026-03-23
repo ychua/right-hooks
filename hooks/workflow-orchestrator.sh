@@ -178,7 +178,7 @@ case "$TRIGGERED" in
     NEW_STATE=$(state_set_done "$STATE" "pr_created")
     write_workflow_state "$NEW_STATE"
 
-    MESSAGE=$(build_next_step_message "$NEW_STATE" "$TRIGGERED")
+    MESSAGE=$(build_next_step_message "$NEW_STATE")
     if [ -n "$MESSAGE" ]; then
       jq -n --arg msg "$MESSAGE" '{"systemMessage": $msg}'
     fi
@@ -204,8 +204,9 @@ case "$TRIGGERED" in
 
     write_workflow_state "$NEW_STATE"
 
-    if [ "$NEW_STATE" != "$STATE" ]; then
-      MESSAGE=$(build_next_step_message "$NEW_STATE" "$TRIGGERED")
+    # Compare using compact sorted JSON to avoid jq whitespace reformatting false positives
+    if [ "$(echo "$NEW_STATE" | jq -Sc '.')" != "$(echo "$STATE" | jq -Sc '.')" ]; then
+      MESSAGE=$(build_next_step_message "$NEW_STATE")
       if [ -n "$MESSAGE" ]; then
         jq -n --arg msg "$MESSAGE" '{"systemMessage": $msg}'
       fi
