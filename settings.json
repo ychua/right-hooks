@@ -38,6 +38,17 @@
             "statusMessage": "Validating edit"
           }
         ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.right-hooks/hooks/workflow-orchestrator.sh",
+            "timeout": 10,
+            "statusMessage": "Checking workflow"
+          }
+        ]
       }
     ],
     "Stop": [
@@ -46,6 +57,17 @@
           {
             "type": "command",
             "command": "$CLAUDE_PROJECT_DIR/.right-hooks/hooks/stop-check.sh"
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.right-hooks/hooks/inject-skill.sh",
+            "statusMessage": "Injecting skill"
           }
         ]
       }

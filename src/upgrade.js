@@ -77,6 +77,18 @@ function run(args) {
   fs.writeFileSync(checksumFile, JSON.stringify(newChecksums, null, 2));
   fs.writeFileSync(path.join(rhDir, 'version'), pkgVersion);
 
+  // Upgrade agent definitions (always overwrite — these are generated, not user-customized)
+  const agentsSrcDir = path.join(pkgRoot, 'agents');
+  const agentsDstDir = path.join('.claude', 'agents');
+  if (fs.existsSync(agentsSrcDir)) {
+    fs.mkdirSync(agentsDstDir, { recursive: true });
+    const agentFiles = fs.readdirSync(agentsSrcDir).filter(f => f.endsWith('.md'));
+    for (const file of agentFiles) {
+      fs.copyFileSync(path.join(agentsSrcDir, file), path.join(agentsDstDir, file));
+    }
+    console.log(`  ✓ Agents updated (${agentFiles.length} agents)`);
+  }
+
   // Upgrade rules
   const rulesDir = path.join(pkgRoot, 'rules');
   if (fs.existsSync(rulesDir)) {
