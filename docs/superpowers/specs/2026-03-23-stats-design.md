@@ -233,6 +233,29 @@ No flags for MVP. Filtering (`--since`, `--pr`) deferred.
 - Learning accumulation metrics (different feature)
 - SQLite migration (deferred — JSONL is sufficient)
 
+## Eng Review Findings (2026-03-23)
+
+Changes from /plan-eng-review:
+
+1. **Recording API**: `rh_pass`/`rh_block` take optional 3rd arg (gate name).
+   When present, auto-records. When absent (pre-merge summary), skips.
+   `rh_record_event` accepts all fields as parameters — no network calls inside.
+
+2. **Stop reasons simplified**: Block reasons collapsed from 6 to 2:
+   `missing_review` and `missing_qa` only. Sub-reasons (sentinel missing,
+   signature mismatch) are diagnostic detail already in the block message.
+
+3. **Performance**: `rh_record_event` must NOT call `rh_branch()` or
+   `rh_pr_number()`. Callers pass these values if they already have them.
+   Simple hooks (post-edit-check) omit PR number entirely.
+
+4. **Test coverage**: Extend existing integration tests (`lifecycle_test.sh`)
+   to verify `events.jsonl` output after hook runs. Three test files total:
+   `test-record-event.sh`, `test-stats.sh`, plus integration test extensions.
+
+5. **Path convention**: Use `.right-hooks/.stats/` (hardcoded relative, like
+   all other preamble paths). No `$RH_DIR` variable.
+
 ## Files to Create/Modify
 
 | File | Action | Description |
