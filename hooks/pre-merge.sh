@@ -219,7 +219,7 @@ if [ "$REQUIRE_LEARNINGS" = "true" ]; then
             # This ensures rules are captured even with squash merges via gh pr merge
             LEARNED_PATTERNS=".right-hooks/rules/learned-patterns.md"
             if [ -f "$LEARNED_PATTERNS" ]; then
-              RULES=$(awk '/### Rules to Extract/{found=1; next} found && /^- /{print}' "$LEARNINGS_FILE")
+              RULES=$(awk '/### Rules to Extract/{found=1; next} /^---$|^## |^### /{found=0} found && /^- /{print}' "$LEARNINGS_FILE")
               NEW_COUNT=0
               while IFS= read -r rule; do
                 [ -z "$rule" ] && continue

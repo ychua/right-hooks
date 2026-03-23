@@ -31,9 +31,25 @@ OWNER_REPO=$(gh repo view --json nameWithOwner --jq '.nameWithOwner' 2>/dev/null
 BLOCKERS=""
 
 # Batch-fetch all PR comments once (paginated)
+# Check gh api exit code independently — pipeline masks failures
 RH_ALL_COMMENTS=""
+RH_COMMENTS_OK=""
 if [ -n "$OWNER_REPO" ]; then
-  RH_ALL_COMMENTS=$(GH_HTTP_TIMEOUT=15 gh api --paginate "repos/${OWNER_REPO}/issues/${PR_NUM}/comments" 2>/dev/null | jq -s 'add // []' 2>/dev/null || echo "[]")
+  _RH_COMMENTS_RAW=$(mktemp)
+  if GH_HTTP_TIMEOUT=15 gh api --paginate "repos/${OWNER_REPO}/issues/${PR_NUM}/comments" > "$_RH_COMMENTS_RAW" 2>/dev/null; then
+    RH_ALL_COMMENTS=$(jq -s 'add // []' < "$_RH_COMMENTS_RAW" 2>/dev/null || echo "[]")
+    RH_COMMENTS_OK=1
+  else
+    RH_ALL_COMMENTS="[]"
+    rh_info "stop-check" "⚠ GitHub API failed — comment checks skipped"
+  fi
+  rm -f "$_RH_COMMENTS_RAW"
+fi
+
+# If API failed, skip all comment-based checks
+if [ -z "$RH_COMMENTS_OK" ] && [ -n "$OWNER_REPO" ]; then
+  rh_pass "stop-check" "API unavailable — skipping comment checks"
+  exit 0
 fi
 
 # Tool detection uses shared preamble helpers (rh_has_gstack, rh_has_superpowers)
