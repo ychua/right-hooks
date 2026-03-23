@@ -63,6 +63,11 @@ case "$1" in
     esac
     ;;
   api)
+    # Simulate API failure when MOCK_API_FAIL is set
+    if [ "${MOCK_API_FAIL:-}" = "1" ]; then
+      echo "gh: API error" >&2
+      exit 1
+    fi
     # Individual comment lookup (sentinel verification): /issues/comments/{id}
     # Returns both id and body — stop-check uses .body for signature matching
     if echo "$*" | grep -qE 'comments/[0-9]+'; then
