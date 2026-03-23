@@ -44,6 +44,8 @@ fi
 # Compact single-line format: 🥊 hook — ✅/🚫 message
 
 rh_pass() {
+  local gate="${3:-}"
+  [ -n "$gate" ] && rh_record_event "$1" "$gate" "pass"
   [ "${RH_QUIET:-}" = "1" ] && return
   printf '🥊 %s — ✅ %s\n' "$1" "$2" >&2
 }
@@ -75,6 +77,8 @@ rh_block_end() {
 
 # Legacy rh_block — one-liner
 rh_block() {
+  local gate="${3:-}"
+  [ -n "$gate" ] && rh_record_event "$1" "$gate" "block"
   printf '🥊 %s — 🚫 %s\n' "$1" "$2" >&2
 }
 
@@ -89,6 +93,27 @@ rh_debug() {
   [ "${RH_DEBUG:-}" = "1" ] && printf '🥊 DEBUG %-14s → %s\n' "$1" "$2" >&2
   return 0
 }
+
+# Event recording for stats — appends JSONL to .right-hooks/.stats/events.jsonl
+# Args: hook gate result [stop_reason] [pr] [branch]
+# All fields passed by caller — no network calls or subprocess spawns inside.
+rh_record_event() {
+  local hook="$1" gate="$2" result="$3"
+  local stop_reason="${4:-}" pr="${5:-}" branch="${6:-}"
+  local ts stats_file event
+  ts=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+  [ -z "$branch" ] && branch="${_RH_BRANCH:-unknown}"
+  stats_file=".right-hooks/.stats/events.jsonl"
+  mkdir -p "$(dirname "$stats_file")"
+  event="{\"ts\":\"$ts\",\"hook\":\"$hook\",\"gate\":\"$gate\",\"result\":\"$result\",\"branch\":\"$branch\""
+  [ -n "$pr" ] && event="$event,\"pr\":$pr"
+  [ -n "$stop_reason" ] && event="$event,\"stop_reason\":\"$stop_reason\""
+  event="$event}"
+  echo "$event" >> "$stats_file"
+}
+
+# Cache branch name once for recording (avoids subprocess per event)
+_RH_BRANCH=$(git branch --show-current 2>/dev/null || echo "unknown")
 
 # Helper: detect gstack/superpowers availability (cached)
 _RH_HAS_GSTACK=""
