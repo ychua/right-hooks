@@ -123,6 +123,23 @@ function run(args) {
     }
   }
 
+  // Merge settings.json hook registrations (new hooks added in later versions)
+  const settingsSrc = path.join(pkgRoot, 'settings.json');
+  const settingsDst = path.join('.claude', 'settings.json');
+  if (fs.existsSync(settingsSrc)) {
+    const { mergeSettings } = require('./settings-merge');
+    const shipped = JSON.parse(fs.readFileSync(settingsSrc, 'utf8'));
+    let existing = {};
+    if (fs.existsSync(settingsDst)) {
+      try {
+        existing = JSON.parse(fs.readFileSync(settingsDst, 'utf8'));
+      } catch {}
+    }
+    const merged = mergeSettings(existing, shipped);
+    fs.writeFileSync(settingsDst, JSON.stringify(merged, null, 2));
+    console.log('  ✓ settings.json — hook registrations merged');
+  }
+
   console.log(`\nUpgrade complete: ${updated} updated, ${added} added, ${preserved} preserved`);
   console.log("Run 'npx right-hooks doctor' to verify.\n");
 }
