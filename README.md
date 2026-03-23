@@ -38,8 +38,11 @@ autonomous, multi-agent, and mechanically enforced.
 ## Quick Start
 
 ```bash
+npm install right-hooks
 npx right-hooks init
 ```
+
+[View on npm](https://www.npmjs.com/package/right-hooks)
 
 Right Hooks auto-detects your project type, installs hooks, copies rules
 and templates, configures Claude Code, and sets up git hooks.
