@@ -27,21 +27,24 @@
 ## Review Agent
 
 ### Findings Summary
-- Pending review
+- 3 MEDIUM issues found and fixed (awk field separator, grep column matching, mock column order)
+- 0 CRITICAL, 0 HIGH
 
 ### Rules to Extract
-- TBD
+- Always use `awk -F'\t'` for tab-delimited CLI output — default field splitting breaks multi-word names
+- Check `gh api` exit code independently of downstream jq — pipeline masks API failures
 
 ---
 
 ## QA Agent
 
 ### Findings Summary
-- 265 unit + 13 integration tests all pass
-- Doctor test validates 12 hooks correctly
+- 279 tests passing (265 unit + 14 integration)
+- Doctor validates all 12 hooks
+- New test: API failure gracefully skips comment gates
 
 ### Rules to Extract
-- TBD
+- Test API failure paths explicitly — mock both success and failure to verify graceful degradation
 
 ---
 
