@@ -179,6 +179,8 @@ npx right-hooks profile strict  # Switch enforcement profile
 npx right-hooks doctor          # Diagnose hook configuration issues
 npx right-hooks doctor --fix    # Auto-repair common issues
 npx right-hooks stats           # Show gate effectiveness metrics and human involvement
+npx right-hooks explain <gate>  # Explain what a gate checks and how to fix blocks
+npx right-hooks explain         # List all gates with per-profile status
 npx right-hooks diff            # Preview what upgrade would change
 npx right-hooks override        # Override a gate with audited reason (humans only)
 npx right-hooks upgrade         # Upgrade hooks (preserves your customizations)
