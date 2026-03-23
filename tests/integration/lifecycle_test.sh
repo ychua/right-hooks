@@ -213,8 +213,9 @@ function test_stop_check_allows_when_complete() {
 # VERIFY: stderr has branded block message with "blocked"
 # WHY: all changes must go through PRs — this is enforced by husky (GH) + Claude Code hook (CH)
 function test_pre_push_blocks_main() {
-  git checkout -q master
-  run_hook "pre-push-master.sh" '{"tool_input":{"command":"git push origin master"}}'
+  # Ensure clean checkout — prior tests may leave uncommitted changes
+  git checkout -q main 2>/dev/null || { git stash -q 2>/dev/null; git checkout -q main; }
+  run_hook "pre-push-master.sh" '{"tool_input":{"command":"git push origin main"}}'
   assert_equals "2" "$RH_LAST_EXIT"
   assert_contains "pre-push" "$(cat /tmp/rh-test-stderr)"
   assert_contains "BLOCKED" "$(cat /tmp/rh-test-stderr)"
