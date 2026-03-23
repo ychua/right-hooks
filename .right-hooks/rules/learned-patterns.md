@@ -38,3 +38,19 @@
 - `HOME` override pattern needed for provider detection isolation in tests
 - No integration test for the full lifecycle with skills.json (hook suggests skill → agent runs → sentinel written → hook passes)
 - Always override HOME in tests that check provider availability — the developer's real installations leak through
+- When creating multiple similar files, apply the same protocol template to ALL of them before moving on
+- Never leak skill content to the parent agent — only inject-skill.sh should provide skill instructions to subagents
+- Substring matching on command text is fragile — require write operators alongside filenames for state triggers
+- Extract shared functions to preamble immediately — don't ship duplicated helpers across hooks
+- SubagentStart + systemMessage injection is strictly more powerful than PostToolUse blocking for workflow enforcement
+- Codex found 10 issues; 6 accepted as fixes (skill leak, dead states, doc integration, fragile triggers, DRY, jq perf)
+- 1 critical gap: .workflow-state corruption has no validation/recovery
+- All 6 fixes accepted by user, ready to implement
+- Should have caught skill-content leak before shipping — the orchestrator's purpose contradicted inject-skill's purpose
+- Always run Codex review on new architectural features — cross-model review catches blind spots
+- State machines must only track states that have write triggers — dead state fields create confusion
+- 265 unit + 13 integration tests passing
+- 4 test gaps identified from accepted fixes (will be covered during implementation)
+- No test for orchestrator injecting when review is done but QA isn't (only tested PR create → review)
+- No test for partial PR comment nudge (review done, QA posts without sentinel)
+- Test every state transition individually, not just the happy path sequence

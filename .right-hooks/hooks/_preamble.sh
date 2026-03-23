@@ -333,6 +333,62 @@ rh_skill_provenance_check() {
   fi
 }
 
+# Skill content loader — reads the full SKILL.md content for a gate
+# Used by inject-skill.sh and workflow-orchestrator.sh
+# 4-tier fallback: project-local SKILL.md → home SKILL.md → fallback text → generic
+# Usage: rh_load_skill_content "codeReview"
+rh_load_skill_content() {
+  local gate="$1"
+
+  # Load and cache skills.json (reuses same cache as rh_skill_command)
+  if [ -z "$_RH_SKILLS_LOADED" ]; then
+    _RH_SKILLS_JSON=$(cat .right-hooks/skills.json 2>/dev/null || echo "{}")
+    _RH_SKILLS_LOADED=1
+  fi
+
+  local skill provider
+  skill=$(echo "$_RH_SKILLS_JSON" | jq -r --arg g "$gate" '.[$g].skill // empty' 2>/dev/null)
+  provider=$(echo "$_RH_SKILLS_JSON" | jq -r --arg g "$gate" '.[$g].provider // empty' 2>/dev/null)
+
+  # Tier 1: Read the actual SKILL.md file
+  if [ -n "$skill" ] && [ -n "$provider" ]; then
+    local skill_file=""
+    local skill_name
+    skill_name=$(echo "$skill" | sed 's|^/||')
+
+    for base_dir in ".claude/skills/${provider}" "$HOME/.claude/skills/${provider}"; do
+      if [ -f "${base_dir}/SKILL.md" ]; then
+        skill_file="${base_dir}/SKILL.md"
+        break
+      fi
+      if [ -f "${base_dir}/${skill_name}/SKILL.md" ]; then
+        skill_file="${base_dir}/${skill_name}/SKILL.md"
+        break
+      fi
+    done
+
+    if [ -n "$skill_file" ] && [ -f "$skill_file" ]; then
+      rh_debug "skill-content" "gate=$gate → loaded from $skill_file"
+      cat "$skill_file"
+      return
+    fi
+  fi
+
+  # Tier 2: Fallback text from skills.json (with ${PR_NUM} interpolation)
+  local fallback pr_num
+  pr_num=$(rh_pr_number)
+  fallback=$(echo "$_RH_SKILLS_JSON" | jq -r --arg g "$gate" '.[$g].fallback // empty' 2>/dev/null)
+  if [ -n "$fallback" ]; then
+    rh_debug "skill-content" "gate=$gate → using fallback text"
+    echo "${fallback//\$\{PR_NUM\}/$pr_num}"
+    return
+  fi
+
+  # Tier 3: Generic instruction
+  rh_debug "skill-content" "gate=$gate → generic fallback"
+  echo "Complete the $gate step for this PR."
+}
+
 # Helper: get branch type prefix
 rh_branch_type() {
   local branch

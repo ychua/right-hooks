@@ -72,7 +72,7 @@ DOC_PAT=$(rh_doc_pattern)
 DOC_COMMENT=$(echo "$RH_ALL_COMMENTS" | jq -r --arg pat "$DOC_PAT" '[.[] | select(.body | test($pat; "i"))] | last | .body // ""' 2>/dev/null || echo "")
 DOC_HINT=$(rh_skill_command "docConsistency" "$PR_NUM")
 if [ -z "$DOC_COMMENT" ]; then
-  ERRORS="${ERRORS}Doc consistency: No documentation review comment found. ${DOC_HINT}\n"
+  ERRORS="${ERRORS}Doc consistency: No documentation review comment found. Spawn the 'doc-reviewer' agent to check documentation consistency.\n"
 else
   # Verify skill signature (Level 2)
   if ! rh_skill_signature_match "docConsistency" "$DOC_COMMENT"; then
