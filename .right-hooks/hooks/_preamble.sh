@@ -40,14 +40,37 @@ else
   fi
 fi
 
-# Logging helpers — all output to stderr
+# ANSI color support — follows NO_COLOR standard (https://no-color.org)
+# Colors apply to stderr display text ONLY. Never color JSON stdout.
+if [ "${_RH_COLOR_FORCE:-}" = "1" ] || { [ -t 2 ] && [ -z "${NO_COLOR:-}" ]; }; then
+  _RH_GREEN='\033[32m'
+  _RH_RED='\033[31m'
+  _RH_BLUE='\033[34m'
+  _RH_DIM='\033[2m'
+  _RH_BOLD='\033[1m'
+  _RH_RESET='\033[0m'
+else
+  _RH_GREEN='' _RH_RED='' _RH_BLUE='' _RH_DIM='' _RH_BOLD='' _RH_RESET=''
+fi
+
+# Logging helpers — all output to stderr (with color when supported)
 # Compact single-line format: 🥊 hook — ✅/🚫 message
+
+# Explain hint — shown after block messages to guide the user
+_rh_explain_hint() {
+  local gate="${1:-}"
+  if [ -n "$gate" ]; then
+    printf "  ${_RH_DIM}💡 Run 'npx right-hooks explain %s' for help${_RH_RESET}\n" "$gate"
+  else
+    printf "  ${_RH_DIM}💡 Run 'npx right-hooks explain' to see all gates${_RH_RESET}\n"
+  fi
+}
 
 rh_pass() {
   local gate="${3:-}"
   [ -n "$gate" ] && rh_record_event "$1" "$gate" "pass"
   [ "${RH_QUIET:-}" = "1" ] && return
-  printf '🥊 %s — ✅ %s\n' "$1" "$2" >&2
+  printf "${_RH_GREEN}🥊 %s — ✅ %s${_RH_RESET}\n" "$1" "$2" >&2
 }
 
 # Incremental block API: rh_block_start → rh_block_item → rh_block_end
@@ -66,11 +89,12 @@ rh_block_item() {
 
 rh_block_end() {
   local hint="${1:-}"
-  printf '🥊 %s — 🚫 BLOCKED\n' "$_RH_BLOCK_HOOK" >&2
+  printf "${_RH_RED}🥊 %s — 🚫 BLOCKED${_RH_RESET}\n" "$_RH_BLOCK_HOOK" >&2
   printf '%b' "$_RH_BLOCK_LINES" | while IFS= read -r line; do
     [ -n "$line" ] && printf '  %s\n' "$line" >&2
   done
   [ -n "$hint" ] && printf '  %s\n' "$hint" >&2
+  _rh_explain_hint >&2
   _RH_BLOCK_HOOK=""
   _RH_BLOCK_LINES=""
 }
@@ -79,18 +103,19 @@ rh_block_end() {
 rh_block() {
   local gate="${3:-}"
   [ -n "$gate" ] && rh_record_event "$1" "$gate" "block"
-  printf '🥊 %s — 🚫 %s\n' "$1" "$2" >&2
+  printf "${_RH_RED}🥊 %s — 🚫 %s${_RH_RESET}\n" "$1" "$2" >&2
+  if [ -n "$gate" ]; then _rh_explain_hint "$gate" >&2; else _rh_explain_hint >&2; fi
 }
 
 rh_info() {
   [ "${RH_QUIET:-}" = "1" ] && return
-  printf '🥊 %s — %s\n' "$1" "$2" >&2
+  printf "${_RH_BLUE}🥊 %s — %s${_RH_RESET}\n" "$1" "$2" >&2
 }
 
 # Debug helper — only outputs when RH_DEBUG=1
 # Usage: rh_debug "hook-name" "message"
 rh_debug() {
-  [ "${RH_DEBUG:-}" = "1" ] && printf '🥊 DEBUG %-14s → %s\n' "$1" "$2" >&2
+  [ "${RH_DEBUG:-}" = "1" ] && printf "${_RH_DIM}🥊 DEBUG %-14s → %s${_RH_RESET}\n" "$1" "$2" >&2
   return 0
 }
 
