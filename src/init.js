@@ -81,6 +81,21 @@ function run(args) {
     }
   }
 
+  // Check GitHub prerequisites
+  try {
+    execSync('gh auth status', { stdio: 'pipe' });
+    console.log('  ✓ GitHub CLI authenticated');
+  } catch {
+    console.log('  ⚠ GitHub CLI (gh) not available or not authenticated');
+    console.log('');
+    console.log('  Right Hooks v1 requires a GitHub repository with the gh CLI authenticated.');
+    console.log('  Install: https://cli.github.com/');
+    console.log('  Auth:    gh auth login');
+    console.log('');
+    console.log('  Hooks will install but gate checks that use the GitHub API will degrade gracefully.');
+    console.log('  GitLab/Bitbucket support is on the roadmap.\n');
+  }
+
   // Detect gstack + superpowers early (before profile selection)
   const tooling = detectTooling(projectDir);
 
