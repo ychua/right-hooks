@@ -288,31 +288,16 @@ function install(projectDir, pkgRoot, preset, profileChoice, tooling) {
   const settingsSrc = path.join(pkgRoot, 'settings.json');
   const settingsDst = path.join(claudeDir, 'settings.json');
   if (fs.existsSync(settingsSrc)) {
-    const settings = JSON.parse(fs.readFileSync(settingsSrc, 'utf8'));
+    const { mergeSettings } = require('./settings-merge');
+    const shipped = JSON.parse(fs.readFileSync(settingsSrc, 'utf8'));
     let existing = {};
     if (fs.existsSync(settingsDst)) {
       try {
         existing = JSON.parse(fs.readFileSync(settingsDst, 'utf8'));
       } catch {}
     }
-    // Deep merge: for each hook event, append new hooks (skip duplicates by command)
-    if (!existing.hooks) existing.hooks = {};
-    for (const [event, entries] of Object.entries(settings.hooks)) {
-      if (!existing.hooks[event]) {
-        existing.hooks[event] = entries;
-      } else {
-        const existingCmds = new Set(
-          existing.hooks[event].flatMap(e => (e.hooks || []).map(h => h.command))
-        );
-        for (const entry of entries) {
-          const newHooks = (entry.hooks || []).filter(h => !existingCmds.has(h.command));
-          if (newHooks.length > 0) {
-            existing.hooks[event].push({ ...entry, hooks: newHooks });
-          }
-        }
-      }
-    }
-    fs.writeFileSync(settingsDst, JSON.stringify(existing, null, 2));
+    const merged = mergeSettings(existing, shipped);
+    fs.writeFileSync(settingsDst, JSON.stringify(merged, null, 2));
   }
   console.log('✓ Claude Code settings.json updated');
 
