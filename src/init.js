@@ -181,6 +181,18 @@ function install(projectDir, pkgRoot, preset, profileChoice, tooling) {
   }
   console.log(`✓ Hooks installed to ${RH_DIR}/hooks/ (${hookFiles.length} hooks)`);
 
+  // Copy agent definitions to .claude/agents/
+  const agentsSrcDir = path.join(pkgRoot, 'agents');
+  const agentsDstDir = path.join(claudeDir, 'agents');
+  if (fs.existsSync(agentsSrcDir)) {
+    fs.mkdirSync(agentsDstDir, { recursive: true });
+    const agentFiles = fs.readdirSync(agentsSrcDir).filter(f => f.endsWith('.md'));
+    for (const file of agentFiles) {
+      fs.copyFileSync(path.join(agentsSrcDir, file), path.join(agentsDstDir, file));
+    }
+    console.log(`✓ Agents installed to ${CLAUDE_DIR}/agents/ (${agentFiles.length} agents)`);
+  }
+
   // Copy rules
   const rulesDir = path.join(pkgRoot, 'rules');
   const ruleFiles = fs.readdirSync(rulesDir).filter(f => f.endsWith('.md'));

@@ -43,18 +43,30 @@ ERRORS=""
 OWNER_REPO=$(gh repo view --json nameWithOwner --jq '.nameWithOwner' 2>/dev/null || echo "")
 
 # Batch-fetch all PR comments once (paginated) — used by doc, review, QA checks
+# Three states: RH_COMMENTS_OK=1 (fetched, may be empty), RH_COMMENTS_OK="" (API failed)
 RH_ALL_COMMENTS=""
+RH_COMMENTS_OK=""
 if [ -n "$OWNER_REPO" ]; then
-  RH_ALL_COMMENTS=$(GH_HTTP_TIMEOUT=15 gh api --paginate "repos/${OWNER_REPO}/issues/${PR_NUM}/comments" 2>/dev/null | jq -s 'add // []' 2>/dev/null || echo "[]")
-  if [ "$RH_ALL_COMMENTS" = "[]" ]; then
-    rh_info "pre-merge" "⚠ Could not fetch PR comments — comment-based gates skipped"
+  # Fetch to temp file so we can check gh api exit code independently of jq
+  _RH_COMMENTS_RAW=$(mktemp)
+  if GH_HTTP_TIMEOUT=15 gh api --paginate "repos/${OWNER_REPO}/issues/${PR_NUM}/comments" > "$_RH_COMMENTS_RAW" 2>/dev/null; then
+    RH_ALL_COMMENTS=$(jq -s 'add // []' < "$_RH_COMMENTS_RAW" 2>/dev/null || echo "[]")
+    RH_COMMENTS_OK=1
+  else
+    RH_ALL_COMMENTS="[]"
+    rh_info "pre-merge" "⚠ GitHub API failed — comment-based gates skipped"
   fi
+  rm -f "$_RH_COMMENTS_RAW"
 fi
 
 # ── Check 1: CI green (HARD ENFORCEMENT — always runs, no override) ──
-CI_FAILURES=$(gh pr checks "$PR_NUM" 2>/dev/null | { grep -cE "fail|pending" || true; })
-if [ "$CI_FAILURES" -gt 0 ]; then
-  ERRORS="${ERRORS}CI: ${CI_FAILURES} check(s) failing or pending — CI must pass before merge\n"
+CI_STATUS=$(gh pr checks "$PR_NUM" 2>/dev/null || echo "")
+# Match fail/pending in the status column (2nd tab-delimited field), not check names
+CI_FAILING=$(echo "$CI_STATUS" | awk -F'\t' '$2 ~ /fail|pending/' || true)
+if [ -n "$CI_FAILING" ]; then
+  CI_COUNT=$(echo "$CI_FAILING" | wc -l | tr -d ' ')
+  CI_NAMES=$(echo "$CI_FAILING" | awk -F'\t' '{print $1}' | paste -sd ', ' -)
+  ERRORS="${ERRORS}CI: ${CI_COUNT} check(s) failing or pending (${CI_NAMES})\n"
 fi
 
 # ── Check 2: DoD items checked ──
@@ -68,19 +80,21 @@ if [ "$REQUIRE_DOD" = "true" ]; then
 fi
 
 # ── Check 3: Doc consistency (HARD ENFORCEMENT — always runs, no override) ──
-DOC_PAT=$(rh_doc_pattern)
-DOC_COMMENT=$(echo "$RH_ALL_COMMENTS" | jq -r --arg pat "$DOC_PAT" '[.[] | select(.body | test($pat; "i"))] | last | .body // ""' 2>/dev/null || echo "")
-DOC_HINT=$(rh_skill_command "docConsistency" "$PR_NUM")
-if [ -z "$DOC_COMMENT" ]; then
-  ERRORS="${ERRORS}Doc consistency: No documentation review comment found. Spawn the 'doc-reviewer' agent to check documentation consistency.\n"
+if [ -z "$RH_COMMENTS_OK" ]; then
+  rh_debug "pre-merge" "skipping doc check — API unavailable"
 else
-  # Verify skill signature (Level 2)
-  if ! rh_skill_signature_match "docConsistency" "$DOC_COMMENT"; then
-    ERRORS="${ERRORS}Doc consistency: Comment doesn't match configured skill signature. ${DOC_HINT}\n"
-  fi
-  # Verify provenance (Level 3)
-  if ! rh_skill_provenance_check "docConsistency"; then
-    ERRORS="${ERRORS}Doc consistency: No skill provenance. After running ${DOC_HINT}, write: echo \"$(echo "$_RH_SKILLS_JSON" | jq -r '.docConsistency.skill // empty')\" > .right-hooks/.skill-proof-docConsistency\n"
+  DOC_PAT=$(rh_doc_pattern)
+  DOC_COMMENT=$(echo "$RH_ALL_COMMENTS" | jq -r --arg pat "$DOC_PAT" '[.[] | select(.body | test($pat; "i"))] | last | .body // ""' 2>/dev/null || echo "")
+  DOC_HINT=$(rh_skill_command "docConsistency" "$PR_NUM")
+  if [ -z "$DOC_COMMENT" ]; then
+    ERRORS="${ERRORS}Doc consistency: No documentation review comment found. Spawn the 'doc-reviewer' agent to check documentation consistency.\n"
+  else
+    if ! rh_skill_signature_match "docConsistency" "$DOC_COMMENT"; then
+      ERRORS="${ERRORS}Doc consistency: Comment doesn't match configured skill signature. ${DOC_HINT}\n"
+    fi
+    if ! rh_skill_provenance_check "docConsistency"; then
+      ERRORS="${ERRORS}Doc consistency: No skill provenance. After running ${DOC_HINT}, write: echo \"$(echo "$_RH_SKILLS_JSON" | jq -r '.docConsistency.skill // empty')\" > .right-hooks/.skill-proof-docConsistency\n"
+    fi
   fi
 fi
 
@@ -96,7 +110,7 @@ if [ "$REQUIRE_PLANNING" = "true" ]; then
 fi
 
 # ── Check 5: Code review ──
-if [ "$REQUIRE_CODE_REVIEW" = "true" ]; then
+if [ "$REQUIRE_CODE_REVIEW" = "true" ] && [ -n "$RH_COMMENTS_OK" ]; then
   if ! rh_has_override "codeReview" "$PR_NUM"; then
     REVIEW_PAT=$(rh_review_pattern)
     SEVERITY_PAT=$(rh_review_severity_pattern)
@@ -155,7 +169,7 @@ if [ "$REQUIRE_CODE_REVIEW" = "true" ]; then
 fi
 
 # ── Check 6: QA ──
-if [ "$REQUIRE_QA" = "true" ]; then
+if [ "$REQUIRE_QA" = "true" ] && [ -n "$RH_COMMENTS_OK" ]; then
   if ! rh_has_override "qa" "$PR_NUM"; then
     QA_PAT=$(rh_qa_pattern)
     QA_RESULT_PAT=$(rh_qa_result_pattern)
@@ -205,7 +219,7 @@ if [ "$REQUIRE_LEARNINGS" = "true" ]; then
             # This ensures rules are captured even with squash merges via gh pr merge
             LEARNED_PATTERNS=".right-hooks/rules/learned-patterns.md"
             if [ -f "$LEARNED_PATTERNS" ]; then
-              RULES=$(awk '/### Rules to Extract/{found=1; next} found && /^- /{print}' "$LEARNINGS_FILE")
+              RULES=$(awk '/### Rules to Extract/{found=1; next} /^---$|^## |^### /{found=0} found && /^- /{print}' "$LEARNINGS_FILE")
               NEW_COUNT=0
               while IFS= read -r rule; do
                 [ -z "$rule" ] && continue

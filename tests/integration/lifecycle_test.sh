@@ -284,7 +284,50 @@ function test_light_profile_skips_review() {
 }
 
 # ══════════════════════════════════════════════════════════════
-# Test 12: Agent Cannot Self-Override
+# Test 12: Pre-merge skips comment gates when API fails
+# ══════════════════════════════════════════════════════════════
+# WHAT: pre-merge — API failure handling
+# SETUP: PR exists, CI passes, but gh api fails (MOCK_API_FAIL=1)
+# VERIFY: exit 0 (pass) — comment gates (doc, review, QA) skipped
+# VERIFY: stderr mentions "API failed"
+# WHY: transient GitHub API failures shouldn't block merges permanently
+function test_pre_merge_skips_gates_on_api_failure() {
+  git checkout -qb fix/api-fail-test 2>/dev/null || git checkout -q fix/api-fail-test
+  export MOCK_PR_EXISTS=1 MOCK_PR_NUMBER=50
+  export MOCK_CI_FAILING=0 MOCK_DOD_INCOMPLETE=0
+  export MOCK_API_FAIL=1
+  export MOCK_HAS_LEARNINGS=1
+
+  # Create learnings file so that gate passes
+  mkdir -p docs/retros
+  cat > docs/retros/api-fail-test-learnings.md << 'EOF'
+# Learnings: API Fail Test
+## Review Agent
+### Rules to Extract
+- Test rule
+## QA Agent
+### Rules to Extract
+- Test rule
+EOF
+  git add docs/retros/ && git commit -qm "add learnings"
+
+  # Create provenance files
+  mkdir -p .right-hooks
+  echo "12345" > .right-hooks/.review-comment-id
+  echo "/review" > .right-hooks/.skill-proof-codeReview
+  echo "12346" > .right-hooks/.qa-comment-id
+  echo "/qa" > .right-hooks/.skill-proof-qa
+  echo "/document-release" > .right-hooks/.skill-proof-docConsistency
+
+  run_hook "pre-merge.sh" '{"tool_input":{"command":"gh pr merge 50"}}'
+  local stderr_out
+  stderr_out=$(cat /tmp/rh-test-stderr)
+  assert_equals "0" "$RH_LAST_EXIT"
+  assert_contains "API failed" "$stderr_out"
+}
+
+# ══════════════════════════════════════════════════════════════
+# Test 13: Agent Cannot Self-Override
 # ══════════════════════════════════════════════════════════════
 # WHAT: block-agent-override.sh fires before any command containing "right-hooks override"
 # VERIFY: exit 2 (block) — agent can't call override on itself

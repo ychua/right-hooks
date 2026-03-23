@@ -10,7 +10,7 @@
 - Copy source hooks to .right-hooks/hooks/ after modifying — the installed copies are what actually run
 - Don't build abstractions (VCS layer) without a second implementation to validate against — defer until needed
 - When dogfooding hooks, run them against a real PR early — unit tests with RH_TEST=1 skip the codepaths that matter most
-- Use charmbracelet/gum for terminal UI instead of hand-drawing ASCII boxes — cleaner code, better output
+- Use compact single-line output (emoji + text) — Claude Code auto-collapses verbose output, making boxes unreadable
 - Always use heredoc redirect (`<<< "$(printf ...)"`) not pipe (`printf ... | while`) when the loop body modifies parent shell state
 - Optional CLI tools should be detected once in preamble and cached in a variable, not checked per-call
 - Always use dynamic default branch detection (`git symbolic-ref refs/remotes/origin/HEAD`) instead of hardcoding `master` or `main`
@@ -54,3 +54,9 @@
 - No test for orchestrator injecting when review is done but QA isn't (only tested PR create → review)
 - No test for partial PR comment nudge (review done, QA posts without sentinel)
 - Test every state transition individually, not just the happy path sequence
+- When deferring init.js integration, always create a TODO with the exact files that need updating (settings.json, init.js, doctor.js, upgrade.js)
+- Mark unshipped features in README with 🔜 so the gap is visible and trackable
+- Agent definitions should always be overwritten on upgrade (they're generated, not user-customized)
+- Always use `awk -F'\t'` for tab-delimited CLI output — default field splitting breaks multi-word names
+- Check `gh api` exit code independently of downstream jq — pipeline masks API failures
+- Test API failure paths explicitly — mock both success and failure to verify graceful degradation
