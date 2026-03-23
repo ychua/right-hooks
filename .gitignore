@@ -7,6 +7,9 @@ node_modules/
 .DS_Store
 lib/
 
+# User-local skill installations (not part of project)
+.claude/skills/
+
 # Sentinel files (transient state from subagent verification)
 .right-hooks/.review-comment-id
 .right-hooks/.qa-comment-id
