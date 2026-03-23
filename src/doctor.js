@@ -312,6 +312,21 @@ function run(args) {
     }
   }
 
+  // Validate gate registry against profiles
+  const profilesDir = path.join(rhDir, 'profiles');
+  if (fs.existsSync(profilesDir)) {
+    const { validateRegistry } = require('./gates');
+    const gateWarnings = validateRegistry(profilesDir);
+    if (gateWarnings.length === 0) {
+      console.log('✓ All profile gates match gate registry');
+    } else {
+      for (const w of gateWarnings) {
+        console.log(`⚠ ${w}`);
+        warnings++;
+      }
+    }
+  }
+
   // Summary
   console.log(`\n${'─'.repeat(40)}`);
   if (issues === 0 && warnings === 0 && fixed === 0) {

@@ -76,7 +76,7 @@ if [ "$TOTAL_PLANS" -gt 0 ]; then
 fi
 
 if [ -n "$ERRORS" ]; then
-  rh_block "pre-pr-create" "planning artifacts missing for feat/ branch"
+  rh_block "pre-pr-create" "planning artifacts missing for feat/ branch" "planningArtifacts"
   echo "" >&2
   printf "$ERRORS" >&2
   exit 2

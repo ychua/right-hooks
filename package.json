@@ -1,7 +1,7 @@
 {
   "name": "right-hooks",
   "version": "1.0.0",
-  "description": "Write hooks when agents cut corners",
+  "description": "Lifecycle enforcement hooks for autonomous AI coding agents",
   "keywords": [
     "ai",
     "agents",
@@ -26,6 +26,7 @@
     "bin/",
     "src/",
     "hooks/",
+    "agents/",
     "rules/",
     "templates/",
     "presets/",
@@ -39,7 +40,7 @@
   ],
   "scripts": {
     "test": "bash tests/unit/run.sh && ./lib/bashunit tests/integration/",
-    "prepare": "husky",
+    "prepare": "husky || true",
     "test:unit": "bash tests/unit/run.sh",
     "test:integration": "./lib/bashunit tests/integration/"
   },

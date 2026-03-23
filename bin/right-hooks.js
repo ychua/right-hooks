@@ -12,6 +12,7 @@ const COMMANDS = {
   preset: 'Switch language preset (e.g., right-hooks preset typescript)',
   profile: 'Switch enforcement profile (e.g., right-hooks profile strict)',
   skills: 'Show or set configured review/QA/doc skills',
+  explain: 'Explain what a gate checks and how to fix blocks',
   stats: 'Show gate effectiveness metrics and human involvement',
   doctor: 'Diagnose hook configuration issues (--fix to auto-repair)',
   diff: 'Preview what upgrade would change (read-only)',
@@ -38,6 +39,9 @@ function main() {
       break;
     case 'skills':
       require('../src/skills.js').run(args.slice(1), command);
+      break;
+    case 'explain':
+      require('../src/explain.js').run(args.slice(1));
       break;
     case 'stats':
       require('../src/stats.js').run(args.slice(1));
@@ -130,6 +134,7 @@ Examples:
   npx right-hooks profile strict          Switch to strict enforcement
   npx right-hooks doctor                  Check hook health
   npx right-hooks doctor --fix            Auto-repair common issues
+  npx right-hooks explain ci               Explain what a gate checks
   npx right-hooks stats                   Show gate effectiveness metrics
   npx right-hooks diff                    Preview what upgrade would change
   npx right-hooks override --gate=qa \\
