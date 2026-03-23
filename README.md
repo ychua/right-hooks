@@ -123,8 +123,7 @@ Detecting project...
     Light (minimal enforcement)
     Custom (toggle individual gates)
 
-✓ Hooks installed to .right-hooks/hooks/ (12 hooks)
-✓ Agents installed to .claude/agents/ (3 agents)
+✓ Hooks installed to .right-hooks/hooks/ (10 hooks)
 ✓ Skills configured: gstack
 ✓ Rules symlinked to .claude/rules/ (4 rule files)
 ✓ Templates installed to .right-hooks/templates/ (3 templates)
@@ -228,8 +227,8 @@ it gets blocked.
 | **session-start** | `SessionStart` | — | Injects project status context |
 | **pre-pr-create** | `PreToolUse` | Think/Plan | Blocks PR without design doc + exec plan (`feat/` branches) |
 | **post-edit-check** | `PostToolUse` | Build | Validates code after every edit (`tsc`/`mypy`/`cargo`) |
-| **workflow-orchestrator** | `PostToolUse` | All | Proactively injects next-step guidance after workflow actions |
-| **inject-skill** | `SubagentStart` | Review/QA | Injects configured skill content into subagents |
+| **workflow-orchestrator** 🔜 | `PostToolUse` | All | Proactively injects next-step guidance after workflow actions |
+| **inject-skill** 🔜 | `SubagentStart` | Review/QA | Injects configured skill content into subagents |
 | **judge** | `SubagentStop` | Review | Filters low-quality review comments |
 | **subagent-stop-check** | `SubagentStop` | Review/QA | Verifies subagent posted a real PR comment (sentinel protocol) |
 | **stop-check** | `Stop` | Review/QA | Blocks agent from stopping before review/QA/docs complete |
@@ -245,10 +244,11 @@ it gets blocked.
 | **pre-push** | `git push` | Blocks push to master/main + validates branch naming + runs tests |
 | **post-merge** | `git merge` | Auto-extracts learnings rules into `learned-patterns.md` |
 
-### Agent Definitions
+### Agent Definitions 🔜
 
 Right Hooks ships generic agent definitions that the `inject-skill` hook fills with
-the right skill content at runtime:
+the right skill content at runtime. Agent installation via `init` is coming soon — the
+definitions exist in `agents/` and can be manually copied to `.claude/agents/`.
 
 | Agent | Gate | Sentinel file |
 |-------|------|--------------|

@@ -11,6 +11,14 @@ See `docs/designs/right-hooks-v1-review.md` for full context.
 - ~~`npx right-hooks doctor --fix`~~ — auto-repairs missing hooks, permissions, checksums
 - ~~`npx right-hooks diff`~~ — preview what upgrade would change
 
+## Phase 2.5 — Init Integration for Flow Orchestration
+
+### Wire workflow-orchestrator, inject-skill, and agents into init.js
+**What:** `npx right-hooks init` should register `workflow-orchestrator.sh` and `inject-skill.sh` in `.claude/settings.json`, copy `agents/*.md` to `.claude/agents/`, and add both hooks to `doctor.js` `expectedHooks`.
+**Why:** PR #9 shipped the hooks and agents but deferred init.js wiring. Users must manually set up these hooks today. The README marks them 🔜 until this ships.
+**Effort:** S (human: ~1d / CC: ~15min) | **Priority:** P1
+**Depends on:** Verifying Claude Code's actual SubagentStart JSON payload schema (currently assumed `{"agent_name": "..."}`)
+
 ## Phase 3 — Stats & Observability
 
 ### `npx right-hooks stats`
