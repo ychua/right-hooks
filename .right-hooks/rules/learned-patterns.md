@@ -54,3 +54,11 @@
 - No test for orchestrator injecting when review is done but QA isn't (only tested PR create → review)
 - No test for partial PR comment nudge (review done, QA posts without sentinel)
 - Test every state transition individually, not just the happy path sequence
+- When deferring init.js integration, always create a TODO with the exact files that need updating (settings.json, init.js, doctor.js, upgrade.js)
+- Mark unshipped features in README with 🔜 so the gap is visible and trackable
+- Agent definitions should always be overwritten on upgrade (they're generated, not user-customized)
+- Pending review
+- TBD
+- 265 unit + 13 integration tests all pass
+- Doctor test validates 12 hooks correctly
+- TBD
