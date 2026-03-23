@@ -107,12 +107,8 @@ else
   fi
 fi
 
-# Check: Learnings doc exists
-LEARNINGS=$(gh pr diff "$PR_NUM" --name-only 2>/dev/null | sort -u | { grep -cE 'docs/retros/.*-learnings\.md$' || true; })
-if [ "$LEARNINGS" -eq 0 ]; then
-  BLOCKERS="${BLOCKERS}• No learnings document found. Create docs/retros/<feature>-learnings.md\n"
-  BLOCKERS="${BLOCKERS}  Template: .right-hooks/templates/learnings.md\n\n"
-fi
+# Note: Learnings check moved to pre-merge.sh — it's a merge gate, not a stop gate.
+# The agent should be able to stop freely; learnings are written after review/QA.
 
 if [ -n "$BLOCKERS" ]; then
   rh_block_start "stop-check"
