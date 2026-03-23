@@ -70,22 +70,28 @@ if [ -n "$CI_FAILING" ]; then
   CI_COUNT=$(echo "$CI_FAILING" | wc -l | tr -d ' ')
   CI_NAMES=$(echo "$CI_FAILING" | awk -F'\t' '{print $1}' | paste -sd ', ' -)
   ERRORS="${ERRORS}CI: ${CI_COUNT} check(s) failing or pending (${CI_NAMES})\n"
+  rh_record_event "pre-merge" "ci" "block" "" "$PR_NUM"
+else
+  rh_record_event "pre-merge" "ci" "pass" "" "$PR_NUM"
 fi
 
 # ── Check 2: DoD items checked ──
 if [ "$REQUIRE_DOD" = "true" ]; then
+  _ERRORS_BEFORE="$ERRORS"
   if ! rh_has_override "dod" "$PR_NUM"; then
     UNCHECKED=$(gh pr view "$PR_NUM" --json body --jq '.body' 2>/dev/null | { grep -c -e '- \[ \]' || true; })
     if [ "$UNCHECKED" -gt 0 ]; then
       ERRORS="${ERRORS}DoD: ${UNCHECKED} unchecked item(s) in PR description\n"
     fi
   fi
+  [ "$ERRORS" = "$_ERRORS_BEFORE" ] && rh_record_event "pre-merge" "dod" "pass" "" "$PR_NUM" || rh_record_event "pre-merge" "dod" "block" "" "$PR_NUM"
 fi
 
 # ── Check 3: Doc consistency (HARD ENFORCEMENT — always runs, no override) ──
 if [ -z "$RH_COMMENTS_OK" ]; then
   rh_debug "pre-merge" "skipping doc check — API unavailable"
 else
+  _ERRORS_BEFORE="$ERRORS"
   DOC_PAT=$(rh_doc_pattern)
   DOC_COMMENT=$(jq -r --arg pat "$DOC_PAT" '[.[] | select(.body | test($pat; "i"))] | last | .body // ""' < "$_RH_COMMENTS_FILE" 2>/dev/null || echo "")
   DOC_HINT=$(rh_skill_command "docConsistency" "$PR_NUM")
@@ -99,10 +105,12 @@ else
       ERRORS="${ERRORS}Doc consistency: No skill provenance. After running ${DOC_HINT}, write: echo \"$(echo "$_RH_SKILLS_JSON" | jq -r '.docConsistency.skill // empty')\" > .right-hooks/.skill-proof-docConsistency\n"
     fi
   fi
+  [ "$ERRORS" = "$_ERRORS_BEFORE" ] && rh_record_event "pre-merge" "docConsistency" "pass" "" "$PR_NUM" || rh_record_event "pre-merge" "docConsistency" "block" "" "$PR_NUM"
 fi
 
 # ── Check 4: Planning artifacts (feat/ only) ──
 if [ "$REQUIRE_PLANNING" = "true" ]; then
+  _ERRORS_BEFORE="$ERRORS"
   if ! rh_has_override "planningArtifacts" "$PR_NUM"; then
     DESIGN_DOC=$(gh pr diff "$PR_NUM" --name-only 2>/dev/null | sort -u | { grep -cE 'docs/designs/.*\.md$' || true; })
     EXEC_PLAN=$(gh pr diff "$PR_NUM" --name-only 2>/dev/null | sort -u | { grep -cE 'docs/exec-plans/.*\.md$' || true; })
@@ -110,10 +118,12 @@ if [ "$REQUIRE_PLANNING" = "true" ]; then
       ERRORS="${ERRORS}Planning: Missing design doc or exec plan in PR diff\n"
     fi
   fi
+  [ "$ERRORS" = "$_ERRORS_BEFORE" ] && rh_record_event "pre-merge" "planningArtifacts" "pass" "" "$PR_NUM" || rh_record_event "pre-merge" "planningArtifacts" "block" "" "$PR_NUM"
 fi
 
 # ── Check 5: Code review ──
 if [ "$REQUIRE_CODE_REVIEW" = "true" ] && [ -n "$RH_COMMENTS_OK" ]; then
+  _ERRORS_BEFORE="$ERRORS"
   if ! rh_has_override "codeReview" "$PR_NUM"; then
     REVIEW_PAT=$(rh_review_pattern)
     SEVERITY_PAT=$(rh_review_severity_pattern)
@@ -169,10 +179,12 @@ if [ "$REQUIRE_CODE_REVIEW" = "true" ] && [ -n "$RH_COMMENTS_OK" ]; then
       fi
     fi
   fi
+  [ "$ERRORS" = "$_ERRORS_BEFORE" ] && rh_record_event "pre-merge" "codeReview" "pass" "" "$PR_NUM" || rh_record_event "pre-merge" "codeReview" "block" "" "$PR_NUM"
 fi
 
 # ── Check 6: QA ──
 if [ "$REQUIRE_QA" = "true" ] && [ -n "$RH_COMMENTS_OK" ]; then
+  _ERRORS_BEFORE="$ERRORS"
   if ! rh_has_override "qa" "$PR_NUM"; then
     QA_PAT=$(rh_qa_pattern)
     QA_RESULT_PAT=$(rh_qa_result_pattern)
@@ -189,10 +201,12 @@ if [ "$REQUIRE_QA" = "true" ] && [ -n "$RH_COMMENTS_OK" ]; then
       fi
     fi
   fi
+  [ "$ERRORS" = "$_ERRORS_BEFORE" ] && rh_record_event "pre-merge" "qa" "pass" "" "$PR_NUM" || rh_record_event "pre-merge" "qa" "block" "" "$PR_NUM"
 fi
 
 # ── Check 7: Learnings ──
 if [ "$REQUIRE_LEARNINGS" = "true" ]; then
+  _ERRORS_BEFORE="$ERRORS"
   if ! rh_has_override "learnings" "$PR_NUM"; then
     LEARNINGS=$(gh pr diff "$PR_NUM" --name-only 2>/dev/null | sort -u | { grep -cE 'docs/retros/.*-learnings\.md$' || true; })
     if [ "$LEARNINGS" -eq 0 ]; then
@@ -243,6 +257,7 @@ if [ "$REQUIRE_LEARNINGS" = "true" ]; then
       fi
     fi
   fi
+  [ "$ERRORS" = "$_ERRORS_BEFORE" ] && rh_record_event "pre-merge" "learnings" "pass" "" "$PR_NUM" || rh_record_event "pre-merge" "learnings" "block" "" "$PR_NUM"
 fi
 
 # ── Result ──

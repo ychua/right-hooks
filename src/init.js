@@ -141,6 +141,7 @@ function install(projectDir, pkgRoot, preset, profileChoice, tooling) {
     path.join(rhDir, 'presets'),
     path.join(rhDir, 'profiles'),
     path.join(rhDir, '.overrides'),
+    path.join(rhDir, '.stats'),
     claudeDir,
     path.join(claudeDir, 'rules'),
   ];

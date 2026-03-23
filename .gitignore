@@ -16,3 +16,6 @@ lib/
 
 # Skill provenance files (transient state from skill invocation)
 .right-hooks/.skill-proof-*
+
+# Stats events (local telemetry, not committed)
+.right-hooks/.stats/

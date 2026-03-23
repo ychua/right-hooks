@@ -213,8 +213,9 @@ function test_stop_check_allows_when_complete() {
 # VERIFY: stderr has branded block message with "blocked"
 # WHY: all changes must go through PRs — this is enforced by husky (GH) + Claude Code hook (CH)
 function test_pre_push_blocks_main() {
-  git checkout -q master
-  run_hook "pre-push-master.sh" '{"tool_input":{"command":"git push origin master"}}'
+  # Ensure clean checkout — prior tests may leave uncommitted changes
+  git checkout -q main 2>/dev/null || { git stash -q 2>/dev/null; git checkout -q main; }
+  run_hook "pre-push-master.sh" '{"tool_input":{"command":"git push origin main"}}'
   assert_equals "2" "$RH_LAST_EXIT"
   assert_contains "pre-push" "$(cat /tmp/rh-test-stderr)"
   assert_contains "BLOCKED" "$(cat /tmp/rh-test-stderr)"
@@ -374,4 +375,71 @@ HOOKEOF
   bash "$hook_script" 2>/tmp/rh-test-stderr || RH_LAST_EXIT=$?
   assert_equals "1" "$RH_LAST_EXIT"
   assert_contains "Tests failed" "$(cat /tmp/rh-test-stderr)"
+}
+
+# ══════════════════════════════════════════════════════════════
+# Test 15: Pre-Merge Records Per-Gate Events to events.jsonl
+# ══════════════════════════════════════════════════════════════
+# WHAT: pre-merge.sh records pass/block events for each gate it checks
+# SETUP: Same as test 6 (all gates pass)
+# VERIFY: events.jsonl exists with per-gate events including "ci"
+function test_pre_merge_records_events() {
+  git checkout -qb feat/test-events-pm 2>/dev/null || git checkout -q feat/test-events-pm
+  export MOCK_PR_EXISTS=1 MOCK_PR_NUMBER=50
+  export MOCK_HAS_REVIEW=1 MOCK_HAS_QA=1 MOCK_HAS_LEARNINGS=1 MOCK_HAS_DOC=1
+  export MOCK_HAS_DESIGN_DOC=1 MOCK_HAS_EXEC_PLAN=1
+  export MOCK_CI_FAILING=0 MOCK_DOD_INCOMPLETE=0
+  mkdir -p .right-hooks
+  echo "/review" > .right-hooks/.skill-proof-codeReview
+  echo "/qa" > .right-hooks/.skill-proof-qa
+  echo "/document-release" > .right-hooks/.skill-proof-docConsistency
+  mkdir -p docs/retros
+  printf "# Learnings\n## Review\n- reviewed\n## QA\n- tested\n### Rules to Extract\n- always test\n" > docs/retros/test-feature-learnings.md
+  git add -A && git commit -qm "add learnings for event test"
+  rm -f .right-hooks/.stats/events.jsonl
+  run_hook "pre-merge.sh" '{"tool_input":{"command":"gh pr merge 50"}}'
+  assert_equals "0" "$RH_LAST_EXIT"
+  assert_file_exists ".right-hooks/.stats/events.jsonl"
+  # Verify CI gate event was recorded
+  assert_contains '"gate":"ci"' "$(cat .right-hooks/.stats/events.jsonl)"
+}
+
+# ══════════════════════════════════════════════════════════════
+# Test 16: Stop-Check Records pipeline_complete Event
+# ══════════════════════════════════════════════════════════════
+# WHAT: stop-check.sh records a stop event with stop_reason
+# SETUP: Same as test 7 (workflow complete)
+# VERIFY: events.jsonl has stop event with "pipeline_complete"
+function test_stop_check_records_pipeline_complete() {
+  git checkout -qb feat/test-events-sc 2>/dev/null || git checkout -q feat/test-events-sc
+  export MOCK_PR_EXISTS=1 MOCK_PR_NUMBER=51
+  export MOCK_HAS_REVIEW=1 MOCK_HAS_QA=1 MOCK_HAS_LEARNINGS=1
+  mkdir -p .right-hooks
+  echo "12345" > .right-hooks/.review-comment-id
+  echo "12346" > .right-hooks/.qa-comment-id
+  echo "/review" > .right-hooks/.skill-proof-codeReview
+  echo "/qa" > .right-hooks/.skill-proof-qa
+  rm -f .right-hooks/.stats/events.jsonl
+  run_hook "stop-check.sh" '{}'
+  assert_equals "0" "$RH_LAST_EXIT"
+  assert_file_exists ".right-hooks/.stats/events.jsonl"
+  assert_contains '"stop_reason":"pipeline_complete"' "$(cat .right-hooks/.stats/events.jsonl)"
+}
+
+# ══════════════════════════════════════════════════════════════
+# Test 17: Stop-Check Records Block Event with missing_review
+# ══════════════════════════════════════════════════════════════
+# WHAT: stop-check blocks and records when review is missing
+# SETUP: PR exists but no review comment
+# VERIFY: events.jsonl has block event with "missing_review"
+function test_stop_check_records_missing_review() {
+  git checkout -qb feat/test-events-mr 2>/dev/null || git checkout -q feat/test-events-mr
+  export MOCK_PR_EXISTS=1 MOCK_PR_NUMBER=52
+  export MOCK_HAS_REVIEW=0 MOCK_HAS_QA=0
+  rm -f .right-hooks/.review-comment-id .right-hooks/.qa-comment-id
+  rm -f .right-hooks/.stats/events.jsonl
+  run_hook "stop-check.sh" '{}'
+  assert_equals "2" "$RH_LAST_EXIT"
+  assert_file_exists ".right-hooks/.stats/events.jsonl"
+  assert_contains '"stop_reason":"missing_review"' "$(cat .right-hooks/.stats/events.jsonl)"
 }

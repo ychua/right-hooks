@@ -278,6 +278,28 @@ function run(args) {
     }
   }
 
+  // Check .stats directory
+  const statsDir = path.join(rhDir, '.stats');
+  if (fs.existsSync(statsDir)) {
+    const eventsFile = path.join(statsDir, 'events.jsonl');
+    if (fs.existsSync(eventsFile)) {
+      const content = fs.readFileSync(eventsFile, 'utf8').trim();
+      const lineCount = content ? content.split('\n').filter(Boolean).length : 0;
+      console.log(`\u2713 Stats: ${lineCount} events recorded`);
+    } else {
+      console.log('\u2713 Stats directory exists (no events yet)');
+    }
+  } else {
+    if (fixing) {
+      fs.mkdirSync(statsDir, { recursive: true });
+      console.log('\ud83d\udd27 Created .stats/ directory');
+      fixed++;
+    } else {
+      console.log('\u26a0 Missing .stats/ directory (run init or doctor --fix)');
+      warnings++;
+    }
+  }
+
   // Check dependencies
   const deps = ['gh', 'jq', 'git'];
   for (const dep of deps) {

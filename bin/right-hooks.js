@@ -12,6 +12,7 @@ const COMMANDS = {
   preset: 'Switch language preset (e.g., right-hooks preset typescript)',
   profile: 'Switch enforcement profile (e.g., right-hooks profile strict)',
   skills: 'Show or set configured review/QA/doc skills',
+  stats: 'Show gate effectiveness metrics and human involvement',
   doctor: 'Diagnose hook configuration issues (--fix to auto-repair)',
   diff: 'Preview what upgrade would change (read-only)',
   override: 'Override a gate with audited reason',
@@ -37,6 +38,9 @@ function main() {
       break;
     case 'skills':
       require('../src/skills.js').run(args.slice(1), command);
+      break;
+    case 'stats':
+      require('../src/stats.js').run(args.slice(1));
       break;
     case 'doctor':
       require('../src/doctor.js').run(args.slice(1));
