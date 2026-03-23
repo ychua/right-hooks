@@ -4,11 +4,14 @@
 [![npm version](https://img.shields.io/npm/v/right-hooks.svg)](https://www.npmjs.com/package/right-hooks)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**The process enforcement layer for AI coding agents.**
+**Fully automated PR process for AI coding agents. You review once. You hit merge.**
 
-> AI agents are good at writing code. They're bad at following process.
-> Right Hooks makes process compliance mechanical — not through prompts
-> (agents ignore those), but through exit codes (agents can't bypass those).
+> You approve a plan. The agent builds it, reviews it, tests it, checks the docs,
+> and writes the learnings — all without you touching the keyboard. When the PR
+> lands in your inbox, every box is already checked. You skim, you merge, you move on.
+>
+> Right Hooks makes this possible by mechanically enforcing every step of the process.
+> Not through prompts (agents ignore those). Through exit codes (agents can't bypass those).
 
 ### Built for [gstack](https://github.com/garrytan/gstack)
 
@@ -21,19 +24,45 @@ or standalone with any review tooling that posts PR comments.
 
 ---
 
-## The Problem
+## The Vision
 
-You give an AI agent a well-defined process. It ignores half of it:
+You have a plan. You approve it. Then:
 
-- Skips the design doc and jumps straight to code
-- Writes all tests after implementation instead of TDD
-- "Reviews" its own code by posting a fake review comment
-- Declares itself done with CI still red
-- Merges without QA, without learnings, without anyone checking
+```
+You: "Build it."
 
-Every failure has the same root cause: **the agent optimizes for task completion, not process compliance.** Good process without enforcement is a suggestion.
+  ... agent works ...
 
-## The Solution
+  ✓ Code written with post-edit validation
+  ✓ Code reviewed by real /review subagent
+  ✓ QA tested by real /qa subagent
+  ✓ Docs checked by real /document-release subagent
+  ✓ CI green
+  ✓ Definition of Done complete
+  ✓ Learnings distilled with extractable rules
+
+You: *skims PR* → merge ✓
+```
+
+**That's the workflow.** You're involved at two points: approving the plan,
+and hitting the merge button. Everything in between is automated and enforced.
+
+## The Problem It Solves
+
+Without enforcement, you're babysitting every PR:
+
+- Did the agent actually run the tests?
+- Did it get a real code review or fake one?
+- Is the CI green or did it merge anyway?
+- Did it write learnings or skip them?
+- Is the documentation still consistent?
+
+You end up checking every gate manually — which defeats the purpose of having
+an AI agent. **Right Hooks eliminates the babysitting.** The agent physically
+cannot reach the merge point without completing every step. When the PR shows
+up, you know it's ready.
+
+## How It Works
 
 Right Hooks adds mechanical enforcement at every stage of the development lifecycle.
 The agent can't skip steps — the hooks physically block forward progress until each
@@ -435,27 +464,25 @@ npx right-hooks doctor # Diagnose configuration issues
 
 ## Why This Exists
 
-I built a product using gstack for planning and review, and superpowers for TDD
-implementation. The skills were excellent. The agents were not.
+I wanted a simple workflow: approve a plan, let the agent build it, review the
+PR once, hit merge. Instead I was babysitting every step.
 
 **The agent faked a `/qa` report.** Instead of spawning a QA subagent, the
 orchestrator posted a comment *formatted to look like* gstack `/qa` output.
-It passed my merge gate because the hook only checked keywords. I didn't catch
-it until production.
+I didn't catch it until production. I should never have needed to catch it —
+the system should have made faking impossible.
 
-**A core module shipped as an orphan.** gstack's `/plan-eng-review` approved the
-architecture. superpowers' subagent-driven-development implemented it with
-two-stage review. gstack's `/review` praised the code. Nobody noticed the module
-was never imported anywhere.
+**A core module shipped as an orphan.** Three separate review tools approved
+the code. Nobody noticed the module was never imported anywhere. I shouldn't
+have to manually verify imports — that's what post-edit validation is for.
 
-**TDD discipline vanished under pressure.** When the plan got complex, the agent
-started writing all tests at once, then all implementation at once. The tests
-passed, but they were written to match the implementation rather than define
-the spec.
+**I was reviewing every PR like a human reviewer.** Checking CI status, verifying
+the QA comment was real, making sure learnings were written, confirming the
+design doc existed. All of that should have been done before the PR reached me.
 
-Every failure had the same root cause: **the agent optimized for completing the
-task, not for doing it well.** Right Hooks exists because good process without
-enforcement is a suggestion. If a rule can be mechanically enforced, it should be.
+Right Hooks exists so that **when a PR lands in your inbox, the work is already
+done.** The agent can't skip steps. The hooks prove every gate was passed. You
+skim the diff, you confirm the approach, you merge. That's it.
 
 ---
 
