@@ -489,6 +489,43 @@ npx right-hooks doctor # Diagnose configuration issues
 
 ## Known Limitations
 
+**Right Hooks enforces process, not intent.** The hooks verify that steps were
+completed — not that they were completed well. An agent with sufficient access
+can technically:
+
+- Post a shallow "LGTM" review comment that passes the sentinel check
+- Spawn a subagent that ignores injected skill instructions
+- Write a learnings doc with boilerplate content
+- Generate a design doc that checks the box without real analysis
+
+This is the same trust boundary that exists with human developers — branch
+protection rules verify a review was submitted, not that the reviewer actually
+read the code.
+
+**What Right Hooks guarantees:**
+
+| Guarantee | How |
+|---|---|
+| Steps cannot be skipped | Exit codes block tool execution — agent can't bypass |
+| Every step leaves an artifact | PR comments, docs, learnings — all auditable |
+| The right skill is dispatched | inject-skill injects real SKILL.md, not agent's approximation |
+| Humans control the escape hatch | `block-agent-override` prevents agent self-approval |
+
+**What it doesn't guarantee:**
+
+| Not guaranteed | Why |
+|---|---|
+| Quality of review comments | Sentinel verifies existence, not depth |
+| Subagent followed skill instructions | LLMs can ignore system prompts |
+| Learnings contain real insights | Content check is structural, not semantic |
+
+**The honest pitch:** Right Hooks raises the floor, not the ceiling. It catches
+the 90% of corner-cutting that happens because the agent forgot or took a
+shortcut — not the 10% where an agent deliberately games the system. For that
+10%, you still need to read the PR.
+
+**Additional limitations:**
+
 1. **Orphan detection is grep-based.** Misses barrel files, dynamic imports,
    and aliased paths. Good heuristic, not a dependency graph.
 
