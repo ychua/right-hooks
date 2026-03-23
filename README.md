@@ -35,19 +35,22 @@ You: *skims diff* → merge ✓           ← 2 minutes
 **Two touchpoints.** Approve the plan. Hit merge. Everything in between is
 autonomous, multi-agent, and mechanically enforced.
 
-### A PR-Based Rigorous Engineering Workflow — Built for [gstack](https://github.com/garrytan/gstack)
+### Process Enforcement for Claude Code
 
 Autonomous doesn't mean sloppy. Every change goes through a full PR lifecycle —
 design doc, implementation, code review, QA, documentation check, learnings —
 the same process a senior engineer would follow, enforced mechanically so the
 agent can't skip steps even when running unsupervised.
 
-Enforces gstack's **Think → Plan → Build → Review → Test → Ship → Reflect**
-lifecycle with mechanical hooks at every stage. When detected, Right Hooks
-auto-configures to match gstack's skill output formats and dispatch patterns.
+Enforces the **Think → Plan → Build → Review → Test → Ship → Reflect**
+lifecycle with mechanical hooks at every stage. Works with Claude Code today,
+with multi-runtime support (Codex, Cursor, Aider) on the roadmap.
 
-Also works with [superpowers](https://github.com/obra/superpowers) for TDD implementation,
-or standalone with any review tooling that posts PR comments.
+### Integrations
+
+- **[gstack](https://github.com/garrytan/gstack)** — Best-in-class integration. Auto-configures skill dispatch, signature patterns, and workflow orchestration when detected.
+- **[superpowers](https://github.com/obra/superpowers)** — TDD implementation, subagent-driven development, plan execution.
+- **Standalone** — Works with any review tooling that posts PR comments.
 
 ---
 
@@ -461,9 +464,9 @@ HUSKY=0 git push
 
 ## Prerequisites
 
+- [Claude Code](https://claude.ai/download) (primary runtime)
 - GitHub repository with PR workflow
-- Claude Code or Codex CLI
-- `gh` CLI authenticated
+- [`gh` CLI](https://cli.github.com/) authenticated
 - `jq` installed
 - Node.js >= 18
 
@@ -535,6 +538,17 @@ Right Hooks uses Right Hooks. Every enforcement directory in this repo is our ow
 - **`agents/`** — Reviewer, QA, and doc-reviewer agent definitions
 
 We develop this project under the same enforcement we ship to you.
+
+---
+
+## Roadmap
+
+- **Multi-runtime adapters** — Codex CLI, Cursor, Aider, Windsurf (Phase 4)
+- **VCS abstraction** — GitLab/Bitbucket support (Phase 4)
+- **GitHub Actions workflow** — CI-level gate enforcement (Phase 5)
+- **Stats filtering** — `--since 7d` and `--pr 12` drill-down
+
+See [TODOS.md](TODOS.md) for the full priority stack.
 
 ---
 
