@@ -4,7 +4,7 @@
 [![npm version](https://img.shields.io/npm/v/right-hooks.svg)](https://www.npmjs.com/package/right-hooks)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**Let your AI agent run for hours. Come back to a ready-to-merge PR.**
+**Let your AI agent run for long periods of time. Come back to a ready-to-merge PR.**
 
 > The bottleneck in AI-assisted development isn't the agent — it's you. Every time
 > the agent needs approval, every time you check if it really ran the tests, every
@@ -17,7 +17,7 @@
 ```
 You: "Here's the plan. Build it."     ← you're done
 
-  ... 2 hours pass ...                ← you're doing something else
+  ... time passes ...                  ← you're doing something else
 
   ✓ Code written with post-edit validation
   ✓ Code reviewed by a real review subagent
@@ -492,8 +492,8 @@ npx right-hooks doctor # Diagnose configuration issues
 
 ## Why This Exists
 
-I wanted to let agents run autonomously for hours — approve a plan, go to lunch,
-come back to a merged PR. Instead I was the bottleneck in my own AI workflow.
+I wanted to let agents run autonomously — approve a plan, step away, come back
+to a merged PR. Instead I was the bottleneck in my own AI workflow.
 
 **The agent couldn't be trusted unsupervised.** It faked a `/qa` report —
 posting a comment *formatted to look like* gstack `/qa` output instead of
@@ -503,8 +503,8 @@ no one watching. The system needed to make faking mechanically impossible.
 
 **Autonomous runs amplify quality gaps.** A core module shipped as an orphan.
 Three separate review tools approved the code. Nobody noticed it was never
-imported anywhere. When the agent runs for 2 hours unsupervised, a missed
-check in minute 20 compounds into a broken deploy by minute 120.
+imported anywhere. The longer the agent runs unsupervised, the more a missed
+check early on compounds into a broken deploy later.
 
 **Human review doesn't scale.** I was checking CI status, verifying QA comments
 were real, confirming design docs existed — for every PR, on every branch.
