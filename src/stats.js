@@ -40,8 +40,8 @@ function run(args) {
     console.error(`\u26a0 Skipped ${skipped} malformed line(s)`);
   }
 
-  // Gate table: group by gate, count pass/block (exclude stop events)
-  const gateEvents = events.filter(e => e.gate !== 'stop');
+  // Gate table: group by gate, count pass/block (exclude stop and stop_failure events)
+  const gateEvents = events.filter(e => e.gate !== 'stop' && e.gate !== 'stop_failure');
   const gates = {};
   for (const e of gateEvents) {
     if (!gates[e.gate]) gates[e.gate] = { pass: 0, block: 0 };

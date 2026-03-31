@@ -394,13 +394,16 @@ function checkSettingsCompleteness(installed, shippedPath, fixing) {
         result.warnings++;
       }
     } else {
-      // Check for missing commands within this event
-      const installedCmds = new Set(
-        installedHooks[event].flatMap(e => (e.hooks || []).map(h => h.command))
+      // Check for missing commands within this event (key on matcher+command)
+      const installedKeys = new Set(
+        installedHooks[event].flatMap(e =>
+          (e.hooks || []).map(h => `${e.matcher || ''}::${h.command}`)
+        )
       );
       for (const entry of entries) {
+        const entryMatcher = entry.matcher || '';
         for (const hook of (entry.hooks || [])) {
-          if (!installedCmds.has(hook.command)) {
+          if (!installedKeys.has(`${entryMatcher}::${hook.command}`)) {
             missingCount++;
             const shortCmd = hook.command.split('/').pop();
             if (fixing) {
