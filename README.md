@@ -63,7 +63,7 @@ Detecting project...
     Light (minimal enforcement)
     Custom (toggle individual gates)
 
-✓ Hooks installed to .right-hooks/hooks/ (12 hooks)
+✓ Hooks installed to .right-hooks/hooks/ (15 hooks)
 ✓ Agents installed to .claude/agents/ (3 agents)
 ✓ Skills configured: gstack
 ✓ Rules symlinked to .claude/rules/ (4 rule files)
@@ -532,9 +532,9 @@ shortcut — not the 10% where an agent deliberately games the system. For that
 1. **Orphan detection is grep-based.** Misses barrel files, dynamic imports,
    and aliased paths. Good heuristic, not a dependency graph.
 
-2. **SubagentStart JSON schema is assumed.** The `inject-skill` hook assumes
-   `{"agent_name": "..."}` — not yet verified against Claude Code's actual
-   payload. Falls back gracefully to generic instructions if the schema differs.
+2. **~~SubagentStart JSON schema is assumed.~~** Resolved in v1.1.0. The
+   `inject-skill` hook now reads `.agent_type` from the official Claude Code
+   SubagentStart schema and resolves gates via `skills.json` `agentTypes` arrays.
 
 3. **Config protection is defense-in-depth.** An agent could `rm -rf .right-hooks/`.
    Checksums make tampering *visible*, not impossible.
