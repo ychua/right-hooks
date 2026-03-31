@@ -65,10 +65,20 @@ gh auth status >/dev/null 2>&1 || { echo "Right Hooks: gh not authenticated" >&2
 - **Input:** JSON with session context
 - **Can block:** Yes (exit 2 prevents the agent from stopping)
 
+### SubagentStart Hooks
+- **Trigger:** When a subagent is spawned
+- **Input:** JSON with `agent_type` and `agent_id`
+- **Can block:** No (informational — use for skill injection)
+
 ### SubagentStop Hooks
 - **Trigger:** When a subagent finishes
-- **Input:** JSON with subagent output
+- **Input:** JSON with subagent output, `agent_type`, `agent_id`, `last_assistant_message`
 - **Can block:** Yes (exit 2 prevents subagent completion acknowledgment)
+
+### StopFailure Hooks
+- **Trigger:** When a session ends due to API error (rate limit, auth failure, etc.)
+- **Input:** JSON with `error` type and `error_details`
+- **Can block:** No (informational — use for observability)
 
 ### SessionStart Hooks
 - **Trigger:** When a new agent session begins

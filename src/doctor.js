@@ -60,6 +60,7 @@ function run(args) {
     '_preamble.sh', 'block-agent-override.sh', 'pre-merge.sh', 'pre-push-master.sh',
     'pre-pr-create.sh', 'stop-check.sh', 'post-edit-check.sh', 'subagent-stop-check.sh',
     'judge.sh', 'session-start.sh', 'workflow-orchestrator.sh', 'inject-skill.sh',
+    'agent-spawn-guard.sh', 'stop-failure-logger.sh', 'block-scheduling.sh',
   ];
 
   const pkgHooksDir = path.join(pkgRoot, 'hooks');
@@ -393,13 +394,16 @@ function checkSettingsCompleteness(installed, shippedPath, fixing) {
         result.warnings++;
       }
     } else {
-      // Check for missing commands within this event
-      const installedCmds = new Set(
-        installedHooks[event].flatMap(e => (e.hooks || []).map(h => h.command))
+      // Check for missing commands within this event (key on matcher+command)
+      const installedKeys = new Set(
+        installedHooks[event].flatMap(e =>
+          (e.hooks || []).map(h => `${e.matcher || ''}::${h.command}`)
+        )
       );
       for (const entry of entries) {
+        const entryMatcher = entry.matcher || '';
         for (const hook of (entry.hooks || [])) {
-          if (!installedCmds.has(hook.command)) {
+          if (!installedKeys.has(`${entryMatcher}::${hook.command}`)) {
             missingCount++;
             const shortCmd = hook.command.split('/').pop();
             if (fixing) {

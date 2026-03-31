@@ -40,8 +40,8 @@ function run(args) {
     console.error(`\u26a0 Skipped ${skipped} malformed line(s)`);
   }
 
-  // Gate table: group by gate, count pass/block (exclude stop events)
-  const gateEvents = events.filter(e => e.gate !== 'stop');
+  // Gate table: group by gate, count pass/block (exclude stop and stop_failure events)
+  const gateEvents = events.filter(e => e.gate !== 'stop' && e.gate !== 'stop_failure');
   const gates = {};
   for (const e of gateEvents) {
     if (!gates[e.gate]) gates[e.gate] = { pass: 0, block: 0 };
@@ -113,6 +113,39 @@ function run(args) {
     const sorted = Object.entries(stopReasons).sort((a, b) => b[1] - a[1]);
     for (const [reason, count] of sorted) {
       console.log(reason.padEnd(30) + String(count).padStart(6));
+    }
+  }
+
+  // Session Failures: group stop_failure events by error type
+  const failureEvents = events.filter(e => e.gate === 'stop_failure');
+  if (failureEvents.length > 0) {
+    const failures = {};
+    for (const e of failureEvents) {
+      const errorType = e.stop_reason || 'unknown';
+      if (!failures[errorType]) {
+        failures[errorType] = { count: 0, lastSeen: '' };
+      }
+      failures[errorType].count++;
+      if (e.ts && e.ts > (failures[errorType].lastSeen || '')) {
+        failures[errorType].lastSeen = e.ts;
+      }
+    }
+
+    console.log('');
+    console.log(
+      'Session Failures'.padEnd(22) +
+      'Count'.padStart(6) +
+      'Last Seen'.padStart(15)
+    );
+
+    const sortedFailures = Object.entries(failures).sort((a, b) => b[1].count - a[1].count);
+    for (const [errorType, data] of sortedFailures) {
+      const lastDate = data.lastSeen ? data.lastSeen.split('T')[0] : '\u2014';
+      console.log(
+        errorType.padEnd(22) +
+        String(data.count).padStart(6) +
+        lastDate.padStart(15)
+      );
     }
   }
 

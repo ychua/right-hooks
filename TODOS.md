@@ -60,6 +60,14 @@ See `docs/designs/right-hooks-v1-review.md` for full context.
 **Effort:** M (human: ~3d / CC: ~30min) | **Priority:** P2
 **Depends on:** Needs separate design doc. Codex flagged: hooks assume local branch state, gh auth. Actions environment is completely different (detached HEAD, GITHUB_TOKEN permissions, fork-PR behavior).
 
+## Phase 6 — Hook Surface Expansion Follow-ups
+
+### FileChanged tamper detection
+**What:** A `FileChanged` hook watching `.right-hooks/` files for unexpected modifications. Logs or alerts when hook scripts, sentinel files, or config are modified outside of normal hook execution.
+**Why:** Defense-in-depth. Currently, an agent could `rm -rf .right-hooks/` and Right Hooks is blind until the next `npx right-hooks upgrade` checksum check. Real-time detection via the official `FileChanged` hook event would complement existing checksums.
+**Effort:** S (human: ~2h / CC: ~10min) | **Priority:** P2
+**Depends on:** Hook surface expansion (this PR establishes the pattern for new hook events)
+
 ## Deferred (no phase assigned)
 
 - **PR status badges** — shield.io badges for "Right Hooks enforced"

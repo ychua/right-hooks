@@ -63,7 +63,7 @@ Detecting project...
     Light (minimal enforcement)
     Custom (toggle individual gates)
 
-✓ Hooks installed to .right-hooks/hooks/ (12 hooks)
+✓ Hooks installed to .right-hooks/hooks/ (15 hooks)
 ✓ Agents installed to .claude/agents/ (3 agents)
 ✓ Skills configured: gstack
 ✓ Rules symlinked to .claude/rules/ (4 rule files)
@@ -271,13 +271,16 @@ it gets blocked.
 | **pre-pr-create** | `PreToolUse` | Think/Plan | Blocks PR without design doc + exec plan (`feat/` branches) |
 | **post-edit-check** | `PostToolUse` | Build | Validates code after every edit (`tsc`/`mypy`/`cargo`) |
 | **workflow-orchestrator** | `PostToolUse` | All | Proactively injects next-step guidance after workflow actions |
-| **inject-skill** | `SubagentStart` | Review/QA | Injects configured skill content into subagents |
+| **agent-spawn-guard** | `PreToolUse` | — | Defense-in-depth guard for agent spawning (blocks dangerous patterns) |
+| **inject-skill** | `SubagentStart` | Review/QA | Injects configured skill content into subagents via `agent_type` |
 | **judge** | `SubagentStop` | Review | Filters low-quality review comments |
 | **subagent-stop-check** | `SubagentStop` | Review/QA | Verifies subagent posted a real PR comment (sentinel protocol) |
 | **stop-check** | `Stop` | Review/QA | Blocks agent from stopping before review/QA/docs complete |
+| **stop-failure-logger** | `StopFailure` | — | Logs agent death events (rate limits, auth failures) for stats |
 | **pre-merge** | `PreToolUse` | Ship | 7-gate merge check: CI, DoD, docs, planning, review, QA, learnings |
 | **pre-push-master** | `PreToolUse` | Ship | Blocks direct push to master/main |
 | **block-agent-override** | `PreToolUse` | — | Blocks agents from calling `right-hooks override` |
+| **block-scheduling** | `PreToolUse` | — | Blocks agents from scheduling autonomous runs (CronCreate, RemoteTrigger) |
 | **config-change** | `ConfigChange` | — | Blocks modification of hook configuration |
 
 ### Git Hooks (via Husky)
@@ -529,15 +532,45 @@ shortcut — not the 10% where an agent deliberately games the system. For that
 1. **Orphan detection is grep-based.** Misses barrel files, dynamic imports,
    and aliased paths. Good heuristic, not a dependency graph.
 
-2. **SubagentStart JSON schema is assumed.** The `inject-skill` hook assumes
-   `{"agent_name": "..."}` — not yet verified against Claude Code's actual
-   payload. Falls back gracefully to generic instructions if the schema differs.
+2. **~~SubagentStart JSON schema is assumed.~~** Resolved in v1.1.0. The
+   `inject-skill` hook now reads `.agent_type` from the official Claude Code
+   SubagentStart schema and resolves gates via `skills.json` `agentTypes` arrays.
 
 3. **Config protection is defense-in-depth.** An agent could `rm -rf .right-hooks/`.
    Checksums make tampering *visible*, not impossible.
 
 4. **Claude Code specific (v1).** Multi-runtime adapters (Codex, Cursor, Aider)
    are on the roadmap.
+
+---
+
+## Hook API Coverage
+
+Claude Code exposes 25 hook events. Right Hooks uses the enforcement-relevant
+subset. Events not listed are informational (context management, MCP, worktrees)
+and don't affect process enforcement.
+
+| Event | Right Hooks hook | Purpose |
+|-------|-----------------|---------|
+| `SessionStart` | session-start.sh | Inject project context |
+| `PreToolUse` (Bash) | block-agent-override, pre-merge, pre-push-master, pre-pr-create | Gate enforcement |
+| `PreToolUse` (Agent) | agent-spawn-guard.sh | Defense-in-depth agent spawning |
+| `PreToolUse` (CronCreate/RemoteTrigger) | block-scheduling.sh | Block agent self-scheduling |
+| `PostToolUse` (Edit/Write) | post-edit-check.sh | Post-edit validation |
+| `PostToolUse` (Bash) | workflow-orchestrator.sh | Next-step guidance |
+| `SubagentStart` | inject-skill.sh | Skill injection via `agent_type` |
+| `SubagentStop` | subagent-stop-check.sh, judge.sh | Subagent verification |
+| `Stop` | stop-check.sh | Completion gates |
+| `StopFailure` | stop-failure-logger.sh | Failure observability |
+| `ConfigChange` | (inline) | Block config modification |
+
+**Not used (by design):** `InstructionsLoaded`, `UserPromptSubmit`, `PermissionRequest`,
+`PostToolUseFailure`, `Notification`, `TaskCreated`, `TaskCompleted`, `TeammateIdle`,
+`CwdChanged`, `FileChanged`, `WorktreeCreate`, `WorktreeRemove`, `PreCompact`,
+`PostCompact`, `Elicitation`, `ElicitationResult`, `SessionEnd`. These are
+informational events that don't affect lifecycle enforcement. Future versions may
+use `FileChanged` for tamper detection and `TaskCreated`/`TaskCompleted` for
+gate visibility.
 
 ---
 

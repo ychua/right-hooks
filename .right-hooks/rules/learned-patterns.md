@@ -100,3 +100,14 @@
 - Silent catch blocks that discard user data should at minimum log a warning
 - Always run integration tests in the same environment as pre-push hooks to catch path resolution issues early
 - When fixing pre-existing test bugs, verify the fix in the exact test runner context (bashunit), not just manual reproduction
+- Always fetch official API docs before building on assumed schemas — use WebFetch on the vendor's documentation URL
+- When extending a state file (.workflow-state), trace who reads it first — if enforcement hooks don't read it, it's guidance only
+- Include a legacy fallback when changing config schemas (agentTypes) so upgrades are non-breaking
+- Agent commit messages must not contain hook trigger phrases like "right-hooks override"
+- Cross-model review (Codex outside voice) catches field-level bugs that single-model review misses
+- The PreToolUse event with tool-specific matchers (Agent, CronCreate) is a stronger enforcement point than tool-specific events (SubagentStart) because PreToolUse can block (exit 2)
+- Verify Known Limitations against official documentation periodically — they may be fixable
+- When a "bug" is reported in installed config, check if `npx right-hooks upgrade` resolves it before debugging the merge logic
+- Rename hooks honestly — "guard" (allows by default, blocks patterns) vs "gate" (blocks by default, allows known)
+- When changing JSON field names in hooks, update ALL test fixtures in the same commit — the tests should fail RED immediately after the schema change
+- New hooks need tests for both the allow path (exit 0) and block path (exit 2) at minimum

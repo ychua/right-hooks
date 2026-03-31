@@ -84,9 +84,10 @@ function setSkill(args) {
     provider = 'superpowers';
   }
 
-  // Update the gate
+  // Update the gate — spread existing to preserve agentTypes, skillSignature, etc.
   const existing = skills[gate] || {};
   skills[gate] = {
+    ...existing,
     skill,
     provider,
     fallback: existing.fallback || `Post a ${gate} comment on the PR`,

@@ -412,6 +412,51 @@ rh_load_skill_content() {
   echo "Complete the $gate step for this PR."
 }
 
+# Resolve agent_type to gate name via skills.json agentTypes arrays
+# Sets RH_RESOLVED_GATE to the matching gate name, or empty if no match
+# Usage: rh_resolve_gate_for_agent_type "reviewer"
+#        if [ -n "$RH_RESOLVED_GATE" ]; then ... fi
+rh_resolve_gate_for_agent_type() {
+  local agent_type="$1"
+  RH_RESOLVED_GATE=""
+
+  if [ -z "$agent_type" ]; then
+    return
+  fi
+
+  # Load and cache skills.json
+  if [ -z "${_RH_SKILLS_LOADED:-}" ]; then
+    _RH_SKILLS_JSON=$(cat .right-hooks/skills.json 2>/dev/null || echo "{}")
+    _RH_SKILLS_LOADED=1
+  fi
+
+  # Check each gate's agentTypes array for a match
+  local gate
+  for gate in $(echo "$_RH_SKILLS_JSON" | jq -r 'keys[]' 2>/dev/null); do
+    local match
+    match=$(echo "$_RH_SKILLS_JSON" | jq -r --arg g "$gate" --arg t "$agent_type" \
+      'if .[$g].agentTypes then (.[$g].agentTypes | index($t) // empty) else empty end' 2>/dev/null)
+    if [ -n "$match" ]; then
+      RH_RESOLVED_GATE="$gate"
+      rh_debug "agent-resolve" "agent_type=$agent_type → gate=$gate"
+      return
+    fi
+  done
+
+  # No match found — fall back to legacy name-based mapping for backward compat
+  case "$agent_type" in
+    reviewer|code-reviewer|review)   RH_RESOLVED_GATE="codeReview" ;;
+    qa-reviewer|qa|qa-tester)        RH_RESOLVED_GATE="qa" ;;
+    doc-reviewer|doc-checker)        RH_RESOLVED_GATE="docConsistency" ;;
+  esac
+
+  if [ -n "$RH_RESOLVED_GATE" ]; then
+    rh_debug "agent-resolve" "agent_type=$agent_type → gate=$RH_RESOLVED_GATE (legacy fallback)"
+  else
+    rh_debug "agent-resolve" "agent_type=$agent_type → no gate match"
+  fi
+}
+
 # Helper: get branch type prefix
 rh_branch_type() {
   local branch

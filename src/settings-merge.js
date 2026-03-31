@@ -24,12 +24,18 @@ function mergeSettings(existing, shipped) {
       // New event — copy it wholesale
       mergedHooks[event] = entries.map(entry => ({ ...entry, hooks: [...(entry.hooks || [])] }));
     } else {
-      // Existing event — append only commands that don't already exist
-      const existingCmds = new Set(
-        mergedHooks[event].flatMap(e => (e.hooks || []).map(h => h.command))
+      // Existing event — append only hooks that don't already exist
+      // Key on matcher+command to handle same command under different matchers
+      const existingKeys = new Set(
+        mergedHooks[event].flatMap(e =>
+          (e.hooks || []).map(h => `${e.matcher || ''}::${h.command}`)
+        )
       );
       for (const entry of entries) {
-        const newHooks = (entry.hooks || []).filter(h => !existingCmds.has(h.command));
+        const entryMatcher = entry.matcher || '';
+        const newHooks = (entry.hooks || []).filter(
+          h => !existingKeys.has(`${entryMatcher}::${h.command}`)
+        );
         if (newHooks.length > 0) {
           mergedHooks[event] = [
             ...mergedHooks[event],
