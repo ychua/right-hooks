@@ -3,18 +3,21 @@
     "skill": null,
     "provider": null,
     "fallback": "Post a code review comment with severity markers on PR #${PR_NUM}",
-    "skillSignature": null
+    "skillSignature": null,
+    "agentTypes": ["reviewer", "code-reviewer", "review"]
   },
   "qa": {
     "skill": null,
     "provider": null,
     "fallback": "Post a QA comment with test results on PR #${PR_NUM}",
-    "skillSignature": null
+    "skillSignature": null,
+    "agentTypes": ["qa-reviewer", "qa", "qa-tester"]
   },
   "docConsistency": {
     "skill": null,
     "provider": null,
     "fallback": "Post a documentation consistency comment on PR #${PR_NUM}",
-    "skillSignature": null
+    "skillSignature": null,
+    "agentTypes": ["doc-reviewer", "doc-checker"]
   }
 }

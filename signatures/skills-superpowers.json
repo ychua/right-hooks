@@ -3,18 +3,21 @@
     "skill": "superpowers:requesting-code-review",
     "provider": "superpowers",
     "fallback": "Dispatch a code review subagent for PR #${PR_NUM}",
-    "skillSignature": "superpowers.*code-reviewer|Dispatched.*code-reviewer"
+    "skillSignature": "superpowers.*code-reviewer|Dispatched.*code-reviewer",
+    "agentTypes": ["reviewer", "code-reviewer", "review"]
   },
   "qa": {
     "skill": null,
     "provider": null,
     "fallback": "Dispatch a QA subagent for PR #${PR_NUM}",
-    "skillSignature": null
+    "skillSignature": null,
+    "agentTypes": ["qa-reviewer", "qa", "qa-tester"]
   },
   "docConsistency": {
     "skill": null,
     "provider": null,
     "fallback": "Post a documentation consistency comment on PR #${PR_NUM}",
-    "skillSignature": null
+    "skillSignature": null,
+    "agentTypes": ["doc-reviewer", "doc-checker"]
   }
 }

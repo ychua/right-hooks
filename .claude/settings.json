@@ -25,6 +25,26 @@
             "statusMessage": "Checking planning artifacts"
           }
         ]
+      },
+      {
+        "matcher": "Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.right-hooks/hooks/agent-spawn-guard.sh",
+            "statusMessage": "Checking agent spawn"
+          }
+        ]
+      },
+      {
+        "matcher": "CronCreate|CronDelete|RemoteTrigger",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.right-hooks/hooks/block-scheduling.sh",
+            "statusMessage": "Checking scheduling tools"
+          }
+        ]
       }
     ],
     "PostToolUse": [
@@ -36,6 +56,17 @@
             "command": "$CLAUDE_PROJECT_DIR/.right-hooks/hooks/post-edit-check.sh",
             "timeout": 30,
             "statusMessage": "Validating edit"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.right-hooks/hooks/workflow-orchestrator.sh",
+            "timeout": 10,
+            "statusMessage": "Checking workflow"
           }
         ]
       }
@@ -76,6 +107,28 @@
           {
             "type": "command",
             "command": "echo 'Cannot modify configuration during session' >&2; exit 2"
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.right-hooks/hooks/inject-skill.sh",
+            "statusMessage": "Injecting skill"
+          }
+        ]
+      }
+    ],
+    "StopFailure": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.right-hooks/hooks/stop-failure-logger.sh",
+            "statusMessage": "Logging failure"
           }
         ]
       }

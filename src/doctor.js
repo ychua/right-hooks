@@ -60,6 +60,7 @@ function run(args) {
     '_preamble.sh', 'block-agent-override.sh', 'pre-merge.sh', 'pre-push-master.sh',
     'pre-pr-create.sh', 'stop-check.sh', 'post-edit-check.sh', 'subagent-stop-check.sh',
     'judge.sh', 'session-start.sh', 'workflow-orchestrator.sh', 'inject-skill.sh',
+    'agent-spawn-guard.sh', 'stop-failure-logger.sh', 'block-scheduling.sh',
   ];
 
   const pkgHooksDir = path.join(pkgRoot, 'hooks');
