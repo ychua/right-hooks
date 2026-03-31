@@ -116,6 +116,39 @@ function run(args) {
     }
   }
 
+  // Session Failures: group stop_failure events by error type
+  const failureEvents = events.filter(e => e.gate === 'stop_failure');
+  if (failureEvents.length > 0) {
+    const failures = {};
+    for (const e of failureEvents) {
+      const errorType = e.stop_reason || 'unknown';
+      if (!failures[errorType]) {
+        failures[errorType] = { count: 0, lastSeen: '' };
+      }
+      failures[errorType].count++;
+      if (e.ts && e.ts > (failures[errorType].lastSeen || '')) {
+        failures[errorType].lastSeen = e.ts;
+      }
+    }
+
+    console.log('');
+    console.log(
+      'Session Failures'.padEnd(22) +
+      'Count'.padStart(6) +
+      'Last Seen'.padStart(15)
+    );
+
+    const sortedFailures = Object.entries(failures).sort((a, b) => b[1].count - a[1].count);
+    for (const [errorType, data] of sortedFailures) {
+      const lastDate = data.lastSeen ? data.lastSeen.split('T')[0] : '\u2014';
+      console.log(
+        errorType.padEnd(22) +
+        String(data.count).padStart(6) +
+        lastDate.padStart(15)
+      );
+    }
+  }
+
   console.log('\u2500'.repeat(47));
   console.log(`Total events: ${events.length} | Since: ${since}`);
   if (avgStops !== null) {
